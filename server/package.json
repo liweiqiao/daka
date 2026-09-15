@@ -1,0 +1,34 @@
+{
+  "name": "shaonianzhi-daka-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "清城少年志 · 国庆打卡工具 —— Koa2 后端",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "db:init": "node db/init.js",
+    "db:demo": "node db/demo-data.js",
+    "db:reset": "node db/reset.js",
+    "smoke": "node test/smoke.js",
+    "audit": "node test/stats-audit.js",
+    "browser": "node test/browser-check.js",
+    "extra": "node test/extra-check.js",
+    "verify": "node test/verify.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@koa/cors": "^5.0.0",
+    "@koa/router": "^13.1.0",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "jsonwebtoken": "^9.0.2",
+    "koa": "^2.15.3",
+    "koa-body": "^6.0.1",
+    "koa-static": "^5.0.0",
+    "mysql2": "^3.11.4",
+    "qiniu": "^7.13.0"
+  }
+}

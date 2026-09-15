@@ -1,0 +1,41 @@
+/* ============================================================
+   base.css —— 全局重置与中文字体栈
+   Inter / Kaio / JetBrains Mono 都没有中文字形，中文必须靠系统字体兜底，
+   否则会出现「英文用 Inter、中文掉到宋体」的割裂感。
+   所以栈的顺序是：西文字体在前（负责拉丁字符与数字），中文字体在后。
+   ============================================================ */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body, #app { height: 100%; }
+
+body {
+  margin: 0;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+img, video, svg { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; border: none; background: none; padding: 0; }
+a { color: inherit; text-decoration: none; }
+table { border-collapse: collapse; width: 100%; }
+
+/* 微信里长按会弹菜单/选中文字，功能性按钮上禁掉更省心 */
+.no-select { -webkit-user-select: none; user-select: none; }
+
+/* 页面切换的淡入，微信里比白屏跳变舒服 */
+.fade-enter-active, .fade-leave-active { transition: opacity .18s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* 滚动条：桌面后台用，细一点不抢眼 */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, .16); border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, .28); background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }

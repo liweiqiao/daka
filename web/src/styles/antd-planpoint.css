@@ -1,0 +1,213 @@
+/* ============================================================
+   antd-planpoint.css —— ant-design-vue 的 Planpoint 覆盖层
+
+   为什么需要这一层：a-v 自带一整套设计系统（#1677ff 主色、4px 圆角、
+   1px 实边框、表头灰底 #fafafa）。要它长得像 Planpoint，
+   光靠 ConfigProvider 的 token 只能改到七八成，剩下两三成
+   （表头分隔线、行 hover、分页按钮形状、空态图标）必须在这里按死。
+
+   两条纪律：
+     1. **只覆盖 a-v 的类名，不要改 .pp-* 的既有语义**。
+        这一层只对后台生效（参与者端根本不加载它）。
+     2. token 能改的优先在 ConfigProvider 改（见 AdminLayout.vue），
+        这里只放 token 表达不了的。两处都能改的会被这里盖掉，
+        所以改配色请先改 token，别在这里加颜色。
+
+   ★ 规范约束（改之前先读 design/后台参考/DESIGN.md）：
+     · 唯一彩色动作是 #0f68ea；亮黄 #ffcb00 只做徽章
+     · 圆角只用 46.8 / 28.8 / 100 / 18 四档，不新增第五档
+     · 唯一的阴影是 rgba(0,0,0,.06) 0 8px 48px
+     · 正文与图标一律 #1d1d1f，不用纯黑
+   ============================================================ */
+
+.pp-antd {
+  --pp-ink: #1d1d1f;
+  --pp-slate: #333333;
+  --pp-fog: #e5e6e8;
+  --pp-mist: #f0f2f4;
+  --pp-blue: #0f68ea;
+  --pp-highlight: #ffcb00;
+  --pp-radius-cards: 28.8px;
+  --pp-radius-inputs: 18px;
+  --pp-shadow: rgba(0, 0, 0, 0.06) 0px 8px 48px 0px;
+}
+
+/* ---------------------------------------------------------- 表格 */
+
+/* 外层给 Planpoint 的卡片圆角，内层表格保持方形 ——
+   圆角在容器上、直角在数据上，这是蓝图表格的正确形态。 */
+.pp-antd .ant-table-wrapper {
+  border: 1px solid var(--pp-fog);
+  border-radius: var(--pp-radius-cards);
+  overflow: hidden;
+}
+
+.pp-antd .ant-table {
+  /* 去掉 a-v 默认的表头渐变/底色过渡，Planpoint 是平的 */
+  background: transparent;
+}
+
+.pp-antd .ant-table-thead > tr > th {
+  background: var(--pp-mist);
+  color: var(--pp-slate);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  /* a-v 默认给表头单元格之间画竖分隔线，Planpoint 里没有这种东西 */
+  border-bottom: none;
+  border-inline-end: none !important;
+  white-space: nowrap;
+}
+.pp-antd .ant-table-thead > tr > th::before {
+  display: none !important;
+}
+
+.pp-antd .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--pp-fog);
+  font-size: 14px;
+  color: var(--pp-ink);
+}
+.pp-antd .ant-table-tbody > tr:last-child > td { border-bottom: none; }
+.pp-antd .ant-table-tbody > tr.ant-table-row:hover > td {
+  background: #fafbfc;
+}
+
+/* 表头排序图标的默认色太浅，在白底灰头上几乎看不见 */
+.pp-antd .ant-table-column-sorter { color: rgba(29, 29, 31, 0.35); }
+.pp-antd .ant-table-column-sorter-up.active,
+.pp-antd .ant-table-column-sorter-down.active { color: var(--pp-blue); }
+
+/* 单元格里的紧凑排布：a-v 默认行高偏松，后台是要一屏看几十行的地方 */
+.pp-antd .ant-table-tbody > tr > td,
+.pp-antd .ant-table-thead > tr > th { padding: 12px 16px; }
+
+/* 固定列会投一条渐变阴影，Planpoint 不许有渐变 —— 换成一根实线 */
+.pp-antd .ant-table-cell-fix-left::after,
+.pp-antd .ant-table-cell-fix-right::after { box-shadow: none !important; }
+.pp-antd .ant-table-cell-fix-left-last::after,
+.pp-antd .ant-table-cell-fix-right-first::after {
+  box-shadow: none !important;
+  border-inline-end: 1px solid var(--pp-fog);
+}
+
+/* 空态：a-v 自带一张插画，跟蓝图风格冲突，只留一句人话 */
+.pp-antd .ant-empty-image { display: none; }
+.pp-antd .ant-empty-normal { margin: 0; padding: 40px 0; }
+.pp-antd .ant-empty-description { color: var(--pp-slate); font-size: 14px; }
+
+/* ---------------------------------------------------------- 分页 */
+
+/* 药丸几何：分页按钮必须是圆的，这是 Planpoint 不可妥协的一条 */
+.pp-antd .ant-pagination { margin-top: 20px; }
+.pp-antd .ant-pagination-item,
+.pp-antd .ant-pagination-prev .ant-pagination-item-link,
+.pp-antd .ant-pagination-next .ant-pagination-item-link,
+.pp-antd .ant-pagination-options .ant-select-selector {
+  border-radius: 100px !important;
+  border-color: var(--pp-fog);
+}
+.pp-antd .ant-pagination-item a { color: var(--pp-ink); }
+.pp-antd .ant-pagination-item-active { background: var(--pp-blue); border-color: var(--pp-blue); }
+.pp-antd .ant-pagination-item-active a { color: #fff; }
+.pp-antd .ant-pagination-total-text { color: var(--pp-slate); font-size: 14px; }
+
+/* ---------------------------------------------------------- 选择器 / 输入 */
+
+.pp-antd .ant-select-selector,
+.pp-antd .ant-input,
+.pp-antd .ant-input-affix-wrapper,
+.pp-antd .ant-picker {
+  border-radius: var(--pp-radius-inputs) !important;
+  border-color: var(--pp-fog);
+}
+.pp-antd .ant-select-focused .ant-select-selector,
+.pp-antd .ant-input:focus,
+.pp-antd .ant-input-affix-wrapper-focused,
+.pp-antd .ant-picker-focused {
+  border-color: var(--pp-blue) !important;
+  box-shadow: 0 0 0 4px rgba(15, 104, 234, 0.1) !important;
+}
+
+/* 下拉面板：唯一的阴影、输入框那档圆角 */
+.pp-antd .ant-select-dropdown,
+.pp-antd .ant-picker-dropdown .ant-picker-panel-container {
+  border-radius: var(--pp-radius-inputs);
+  box-shadow: var(--pp-shadow);
+  border: 1px solid var(--pp-fog);
+}
+.pp-antd .ant-select-item-option-selected {
+  background: rgba(15, 104, 234, 0.08);
+  color: var(--pp-blue);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------- 气泡 / 提示 */
+
+.pp-antd .ant-tooltip-inner {
+  border-radius: var(--pp-radius-inputs);
+  background: var(--pp-ink);
+  font-size: 13px;
+  box-shadow: var(--pp-shadow);
+}
+.pp-antd .ant-tooltip-arrow::before { background: var(--pp-ink); }
+
+.pp-antd .ant-popover-inner {
+  border-radius: var(--pp-radius-inputs);
+  box-shadow: var(--pp-shadow);
+  border: 1px solid var(--pp-fog);
+}
+
+/* ---------------------------------------------------------- 弹窗 */
+
+.pp-antd .ant-modal-content {
+  border-radius: var(--pp-radius-cards);
+  box-shadow: var(--pp-shadow);
+  padding: 28px;
+}
+.pp-antd .ant-modal-header { background: transparent; border-bottom: none; margin-bottom: 20px; }
+.pp-antd .ant-modal-title { font-size: 22px; font-weight: 600; letter-spacing: -1.32px; color: var(--pp-ink); }
+.pp-antd .ant-modal-footer { border-top: none; margin-top: 24px; }
+.pp-antd .ant-modal-close { border-radius: 100px; }
+
+/* ---------------------------------------------------------- 标签 / 徽章 */
+
+.pp-antd .ant-tag {
+  border-radius: 100px !important;
+  border-color: var(--pp-fog);
+  background: var(--pp-mist);
+  color: var(--pp-slate);
+  font-size: 13px;
+  padding-inline: 11px;
+}
+/* a-v 预设的 success/error/warning 色板在 Planpoint 里没有落点，
+   统一收回到「黄＝需留意 / 蓝＝正常」这一对（与 .pp-badge 保持一致） */
+.pp-antd .ant-tag-success,
+.pp-antd .ant-tag-error,
+.pp-antd .ant-tag-warning {
+  background: var(--pp-highlight);
+  border-color: var(--pp-highlight);
+  color: var(--pp-ink);
+  font-weight: 600;
+}
+.pp-antd .ant-tag-processing { background: rgba(15, 104, 234, 0.1); border-color: transparent; color: var(--pp-blue); }
+
+/* ---------------------------------------------------------- 按钮 */
+
+.pp-antd .ant-btn { border-radius: 100px; font-weight: 600; }
+.pp-antd .ant-btn-primary { background: var(--pp-blue); }
+.pp-antd .ant-btn-primary:not(:disabled):hover { background: #2f7ceb; }
+.pp-antd .ant-btn-default { border-color: var(--pp-ink); color: var(--pp-ink); }
+.pp-antd .ant-btn-default:not(:disabled):hover { background: var(--pp-mist); border-color: var(--pp-ink); color: var(--pp-ink); }
+
+/* ---------------------------------------------------------- 其它 */
+
+.pp-antd .ant-spin-dot-item { background-color: var(--pp-blue); }
+.pp-antd .ant-switch.ant-switch-checked { background: var(--pp-blue); }
+.pp-antd .ant-checkbox-checked .ant-checkbox-inner { background: var(--pp-blue); border-color: var(--pp-blue); }
+.pp-antd .ant-radio-checked .ant-radio-inner { border-color: var(--pp-blue); }
+.pp-antd .ant-radio-checked .ant-radio-inner::after { background: var(--pp-blue); }
+.pp-antd .ant-message-notice-content {
+  border-radius: var(--pp-radius-inputs);
+  box-shadow: var(--pp-shadow);
+  border: 1px solid var(--pp-fog);
+}

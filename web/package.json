@@ -1,0 +1,22 @@
+{
+  "name": "shaonianzhi-daka-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "清城少年志 · 国庆打卡工具 —— Vue3 + Vite 前端（参与者端 + 统计后台）",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "ant-design-vue": "^4.2.6",
+    "echarts": "^5.6.0",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "vite": "^6.0.7"
+  }
+}

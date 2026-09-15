@@ -1,0 +1,590 @@
+/* ============================================================
+   planpoint.css —— 统计后台皮肤
+   严格按 design/后端参考/DESIGN.md 实现：
+     · 全部白底 + 单层 @6% 阴影，系统内不允许出现渐变
+     · 药丸几何不可妥协：按钮/标签 100px，卡片 28.8px，输入框 18px
+     · 唯一的彩色动作是 信号蓝 #0f68ea；亮黄 #ffcb00 只做「新」徽章
+     · 正文与图标一律 #1d1d1f，绝不用纯黑
+   全部选择器挂在 .pp 下，避免与参与者端的茄紫/热粉体系互相污染。
+   ============================================================ */
+
+.pp {
+  --pp-ink: #1d1d1f;
+  --pp-white: #ffffff;
+  --pp-mist: #f0f2f4;
+  --pp-fog: #e5e6e8;
+  --pp-carbon: #000000;
+  --pp-slate: #333333;
+  --pp-midnight: #00051a;
+  --pp-blue: #0f68ea;
+  --pp-link: #007aff;
+  --pp-highlight: #ffcb00;
+  --pp-navy: #000a3b;
+
+  --pp-font: 'Inter', ui-sans-serif, system-ui, -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+
+  --pp-text-caption: 14px;
+  --pp-text-body-sm: 16px;
+  --pp-text-body: 18px;
+  --pp-text-subheading: 22px;
+  --pp-text-heading-sm: 29px;
+  --pp-text-heading: 43px;
+  --pp-text-display: 72px;
+
+  --pp-sp-4: 4px;  --pp-sp-8: 8px;   --pp-sp-12: 12px; --pp-sp-16: 16px;
+  --pp-sp-20: 20px; --pp-sp-28: 28px; --pp-sp-40: 40px; --pp-sp-64: 64px;
+
+  --pp-radius-tags: 46.8px;
+  --pp-radius-cards: 28.8px;
+  --pp-radius-badges: 100px;
+  --pp-radius-inputs: 18px;
+  --pp-radius-buttons: 100px;
+
+  --pp-shadow: rgba(0, 0, 0, 0.06) 0px 8px 48px 0px;
+
+  font-family: var(--pp-font);
+  font-size: var(--pp-text-body-sm);
+  line-height: 1.55;
+  letter-spacing: -0.02em;
+  color: var(--pp-ink);
+  background: var(--pp-white);
+  min-height: 100vh;
+}
+
+/* ---------------------------------------------------------- 外壳布局 */
+
+.pp-shell { display: flex; min-height: 100vh; }
+
+.pp-side {
+  width: 232px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--pp-fog);
+  padding: var(--pp-sp-28) var(--pp-sp-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-sp-16);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--pp-white);
+}
+
+.pp-brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 8px; }
+.pp-brand__mark {
+  width: 22px; height: 22px;
+  background: var(--pp-blue);
+  transform: rotate(45deg);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.pp-brand__text { font-size: 18px; font-weight: 700; letter-spacing: -0.4px; color: var(--pp-ink); }
+.pp-brand__sub { font-size: 12px; color: var(--pp-slate); font-weight: 400; }
+
+.pp-nav { display: flex; flex-direction: column; gap: 2px; }
+.pp-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-radius: var(--pp-radius-buttons);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--pp-ink);
+  transition: background .15s, color .15s;
+}
+.pp-nav__item:hover { background: var(--pp-mist); }
+.pp-nav__item.is-active { background: var(--pp-mist); font-weight: 600; }
+.pp-nav__dot {
+  width: 6px; height: 6px; border-radius: 99px;
+  background: var(--pp-fog);
+  flex-shrink: 0;
+}
+.pp-nav__item.is-active .pp-nav__dot { background: var(--pp-blue); }
+.pp-nav__badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--pp-highlight);
+  color: var(--pp-ink);
+  border-radius: var(--pp-radius-badges);
+  padding: 2px 8px;
+}
+.pp-side__foot { margin-top: auto; font-size: 12px; color: var(--pp-slate); padding: 0 8px; line-height: 1.6; }
+
+.pp-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.pp-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, .92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--pp-fog);
+  padding: var(--pp-sp-16) var(--pp-sp-40);
+  display: flex;
+  align-items: center;
+  gap: var(--pp-sp-16);
+  flex-wrap: wrap;
+}
+.pp-top__title { font-size: var(--pp-text-subheading); font-weight: 600; letter-spacing: -1.32px; line-height: 1.2; }
+.pp-top__meta { font-size: var(--pp-text-caption); color: var(--pp-slate); }
+.pp-top__right { margin-left: auto; display: flex; align-items: center; gap: var(--pp-sp-12); flex-wrap: wrap; }
+
+.pp-body {
+  padding: var(--pp-sp-28) var(--pp-sp-40) var(--pp-sp-64);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-sp-28);
+}
+.pp-body--tight { gap: var(--pp-sp-16); }
+
+/* 演练模式横幅（服务端把「今天」改成活动期内某天时出现） */
+.pp-simbar {
+  margin-bottom: calc(-1 * var(--pp-sp-28));
+  padding: 8px 14px;
+  border-radius: var(--pp-radius-sm);
+  background: repeating-linear-gradient(135deg, #fff5da 0 12px, #ffeab5 12px 24px);
+  border: 1px solid #efd08a;
+  color: #7a4a06;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+@media (max-width: 1000px) {
+  .pp-simbar { margin-bottom: calc(-1 * var(--pp-sp-16)); }
+}
+
+@media (max-width: 1000px) {
+  .pp-shell { flex-direction: column; }
+  .pp-side {
+    width: 100%;
+    height: auto;
+    position: static;
+    border-right: none;
+    border-bottom: 1px solid var(--pp-fog);
+    padding: var(--pp-sp-16);
+  }
+  .pp-nav { flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
+  .pp-nav__item { white-space: nowrap; }
+  .pp-side__foot { display: none; }
+  .pp-top, .pp-body { padding-left: var(--pp-sp-16); padding-right: var(--pp-sp-16); }
+}
+
+/* ---------------------------------------------------------- 标题 */
+
+.pp-h1 { font-size: var(--pp-text-heading-sm); font-weight: 700; letter-spacing: -1.28px; line-height: 1.25; }
+.pp-h2 { font-size: var(--pp-text-subheading); font-weight: 600; letter-spacing: -1.32px; line-height: 1.3; }
+.pp-h3 { font-size: 18px; font-weight: 600; letter-spacing: -0.6px; }
+.pp-lead { font-size: var(--pp-text-body-sm); color: var(--pp-slate); line-height: 1.6; }
+.pp-caption { font-size: var(--pp-text-caption); color: var(--pp-slate); }
+.pp-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pp-sp-12);
+  flex-wrap: wrap;
+  margin-bottom: var(--pp-sp-16);
+}
+.pp-section-head__right { margin-left: auto; display: flex; gap: var(--pp-sp-8); align-items: center; }
+
+/* ---------------------------------------------------------- 卡片 */
+
+.pp-card {
+  background: var(--pp-white);
+  border: 1px solid var(--pp-fog);
+  border-radius: var(--pp-radius-cards);
+  padding: var(--pp-sp-28);
+}
+.pp-card--mist { background: var(--pp-mist); border-color: transparent; }
+.pp-card--flush { padding: 0; overflow: hidden; }
+.pp-card--pad-sm { padding: var(--pp-sp-20); }
+
+.pp-grid { display: grid; gap: var(--pp-sp-16); }
+.pp-grid--4 { grid-template-columns: repeat(4, 1fr); }
+.pp-grid--3 { grid-template-columns: repeat(3, 1fr); }
+.pp-grid--2 { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 1180px) { .pp-grid--4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 860px) {
+  .pp-grid--3, .pp-grid--2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) { .pp-grid--4 { grid-template-columns: 1fr; } }
+
+/* ---------------------------------------------------------- 指标卡 */
+
+.pp-kpi {
+  background: var(--pp-white);
+  border: 1px solid var(--pp-fog);
+  border-radius: var(--pp-radius-cards);
+  padding: var(--pp-sp-28);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.pp-kpi--brand { background: var(--pp-blue); border-color: var(--pp-blue); color: #fff; }
+.pp-kpi--brand .pp-kpi__label, .pp-kpi--brand .pp-kpi__foot { color: rgba(255, 255, 255, .78); }
+.pp-kpi--dark { background: var(--pp-navy); border-color: var(--pp-navy); color: #fff; }
+.pp-kpi--dark .pp-kpi__label, .pp-kpi--dark .pp-kpi__foot { color: rgba(255, 255, 255, .7); }
+
+.pp-kpi__label { font-size: var(--pp-text-caption); font-weight: 500; color: var(--pp-slate); }
+.pp-kpi__value {
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -1.8px;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.pp-kpi__unit { font-size: 18px; font-weight: 600; margin-left: 4px; letter-spacing: 0; }
+.pp-kpi__foot { font-size: 13px; color: var(--pp-slate); }
+
+/* ---------------------------------------------------------- 按钮 */
+
+.pp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--pp-radius-buttons);
+  padding: 14px 22px;
+  font-size: var(--pp-text-body-sm);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--pp-white);
+  background: var(--pp-blue);
+  box-shadow: var(--pp-shadow);
+  transition: filter .15s, background .15s, opacity .15s;
+  white-space: nowrap;
+}
+.pp-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.pp-btn:disabled { opacity: .42; cursor: not-allowed; }
+.pp-btn--dark { background: var(--pp-ink); }
+.pp-btn--outline {
+  background: transparent;
+  border: 1px solid var(--pp-ink);
+  color: var(--pp-ink);
+  box-shadow: none;
+}
+.pp-btn--outline:hover:not(:disabled) { background: var(--pp-mist); }
+.pp-btn--sm { padding: 9px 18px; font-size: var(--pp-text-caption); box-shadow: none; }
+.pp-btn--ghost {
+  background: transparent;
+  color: var(--pp-ink);
+  box-shadow: none;
+  padding: 8px 14px;
+}
+.pp-btn--ghost:hover:not(:disabled) { background: var(--pp-mist); }
+
+/* ---------------------------------------------------------- 标签 / 徽章 */
+
+.pp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--pp-white);
+  border: 1px solid var(--pp-fog);
+  border-radius: var(--pp-radius-tags);
+  padding: 6px 14px;
+  font-size: var(--pp-text-caption);
+  font-weight: 500;
+  color: var(--pp-ink);
+  cursor: pointer;
+  transition: all .15s;
+}
+.pp-tag:hover { border-color: var(--pp-ink); }
+.pp-tag.is-on {
+  background: var(--pp-ink);
+  border-color: var(--pp-ink);
+  color: var(--pp-white);
+}
+
+.pp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: var(--pp-radius-badges);
+  padding: 3px 11px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  background: var(--pp-mist);
+  color: var(--pp-slate);
+}
+.pp-badge--new { background: var(--pp-highlight); color: var(--pp-ink); font-weight: 600; }
+.pp-badge--blue { background: rgba(15, 104, 234, .1); color: var(--pp-blue); }
+.pp-badge--dark { background: var(--pp-ink); color: #fff; }
+
+/* 状态徽章只用系统内的色。
+   规范明令「不要引入额外的绿/紫/红」，所以：
+     需留意 → 黄（spec 里 #ffcb00 的官方用途就是 novelty badge 与 status indicator）
+     正常态 → 品牌蓝的淡版
+   红/绿在整套 Planpoint 里没有任何合法落点，别再加回来。 */
+.pp-badge--warn { background: var(--pp-highlight); color: var(--pp-ink); font-weight: 600; }
+.pp-badge--done { background: rgba(15, 104, 234, .1); color: var(--pp-blue); }
+
+/* ---------------------------------------------------------- 表单 */
+
+.pp-field { display: flex; flex-direction: column; gap: 6px; }
+.pp-label { font-size: 13px; font-weight: 600; color: var(--pp-ink); }
+
+.pp-input, .pp-select, .pp-textarea {
+  width: 100%;
+  background: var(--pp-white);
+  border: 1px solid var(--pp-fog);
+  border-radius: var(--pp-radius-inputs);
+  padding: 12px 18px;
+  font-size: var(--pp-text-body-sm);
+  color: var(--pp-ink);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.pp-input::placeholder, .pp-textarea::placeholder { color: var(--pp-slate); }
+.pp-input:focus, .pp-select:focus, .pp-textarea:focus {
+  border-color: var(--pp-blue);
+  box-shadow: 0 0 0 4px rgba(15, 104, 234, .1);
+}
+.pp-textarea { min-height: 92px; resize: vertical; line-height: 1.6; }
+.pp-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23333' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 40px;
+}
+.pp-input--sm { padding: 9px 14px; font-size: var(--pp-text-caption); border-radius: 999px; }
+
+.pp-filters { display: flex; gap: var(--pp-sp-8); flex-wrap: wrap; align-items: center; }
+.pp-filters .pp-input, .pp-filters .pp-select { width: auto; min-width: 130px; }
+
+/* ---------------------------------------------------------- 表格 */
+
+.pp-tablewrap { overflow-x: auto; border-radius: var(--pp-radius-cards); border: 1px solid var(--pp-fog); }
+.pp-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 720px; }
+.pp-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--pp-slate);
+  background: var(--pp-mist);
+  padding: 12px 16px;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+.pp-table td {
+  padding: 12px 16px;
+  border-top: 1px solid var(--pp-fog);
+  vertical-align: middle;
+}
+.pp-table tbody tr:hover { background: #fafbfc; }
+.pp-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.pp-table .nowrap { white-space: nowrap; }
+.pp-table__name { font-weight: 600; }
+.pp-table--compact td, .pp-table--compact th { padding: 9px 12px; }
+
+.pp-pager {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-sp-12);
+  justify-content: flex-end;
+  padding: var(--pp-sp-16) 0 0;
+  font-size: var(--pp-text-caption);
+  color: var(--pp-slate);
+}
+
+/* ---------------------------------------------------------- 图表
+
+   图表配色不在这里定，在 web/src/charts/theme.js。
+   这里只管"图表放进卡片里"这件事的排版：
+   图表是卡片的内容，所以容器不描边、不换底、不加第二层阴影。
+   -------------------------------------------------------------------- */
+
+.pp-chart { width: 100%; overflow-x: auto; }
+.pp-chart svg { display: block; }
+.pp-legend { display: flex; gap: var(--pp-sp-16); flex-wrap: wrap; font-size: 13px; color: var(--pp-slate); }
+.pp-legend__item { display: inline-flex; align-items: center; gap: 6px; }
+.pp-legend__swatch { width: 10px; height: 10px; border-radius: 3px; }
+
+/* 图表卡：卡头（标题 + 口径说明 + 右上角操作）+ 卡身（图表本体） */
+.pp-chartcard { display: flex; flex-direction: column; }
+.pp-chartcard__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pp-sp-12);
+  flex-wrap: wrap;
+  margin-bottom: var(--pp-sp-20);
+}
+.pp-chartcard__right { margin-left: auto; display: flex; align-items: center; gap: var(--pp-sp-8); }
+/* 口径说明：每个图表都必须写清"这个数怎么算的"，
+   否则同一个"打卡次数"在不同页面被读成两个意思 */
+.pp-chartcard__note { font-size: 13px; color: var(--pp-slate); line-height: 1.6; }
+
+/* 图表并排时的两列/三列栅格，窄屏自动落成一列 */
+.pp-chartgrid { display: grid; gap: var(--pp-sp-16); }
+.pp-chartgrid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pp-chartgrid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1180px) { .pp-chartgrid--3 { grid-template-columns: 1fr; } }
+@media (max-width: 980px) { .pp-chartgrid--2 { grid-template-columns: 1fr; } }
+
+/* 热力图在窄屏放不下 7 列 × 7 行，允许横向滚动而不是把格子压扁 */
+.pp-chart--scroll { overflow-x: auto; }
+.pp-chart--scroll > * { min-width: 560px; }
+
+/* 横向条形排行 */
+.pp-bars { display: flex; flex-direction: column; gap: 12px; }
+.pp-bar__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+.pp-bar__label { font-weight: 500; }
+.pp-bar__value { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; }
+.pp-bar__track { height: 10px; background: var(--pp-mist); border-radius: 999px; overflow: hidden; }
+.pp-bar__fill { height: 100%; border-radius: 999px; background: var(--pp-blue); transition: width .4s ease; }
+.pp-bar__fill--ink { background: var(--pp-ink); }
+.pp-bar__fill--yellow { background: var(--pp-highlight); }
+
+/* 日期 × 主题 热力矩阵 */
+.pp-matrix { overflow-x: auto; }
+.pp-matrix table { border-collapse: separate; border-spacing: 4px; min-width: 640px; }
+.pp-matrix th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pp-slate);
+  padding: 4px 6px;
+  text-align: center;
+  white-space: nowrap;
+}
+.pp-matrix th.rowhead { text-align: right; padding-right: 10px; }
+.pp-matrix td {
+  width: 64px;
+  height: 46px;
+  border-radius: 12px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pp-ink);
+  background: var(--pp-mist);
+}
+
+/* ---------------------------------------------------------- 媒体缩略 */
+
+.pp-media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--pp-sp-12);
+}
+.pp-media {
+  border: 1px solid var(--pp-fog);
+  border-radius: var(--pp-radius-inputs);
+  overflow: hidden;
+  background: var(--pp-white);
+}
+.pp-media__box { aspect-ratio: 1; background: var(--pp-mist); overflow: hidden; }
+.pp-media__box img, .pp-media__box video { width: 100%; height: 100%; object-fit: cover; }
+.pp-media__meta { padding: 8px 12px; font-size: 12px; color: var(--pp-slate); line-height: 1.5; }
+
+/* ---------------------------------------------------------- 弹层 */
+
+.pp-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 5, 26, .42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--pp-sp-20);
+  overflow-y: auto;
+}
+.pp-modal {
+  background: var(--pp-white);
+  border-radius: var(--pp-radius-cards);
+  box-shadow: var(--pp-shadow);
+  width: 100%;
+  max-width: 560px;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: var(--pp-sp-28);
+}
+.pp-modal--wide { max-width: 880px; }
+.pp-modal__head {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-sp-12);
+  margin-bottom: var(--pp-sp-20);
+}
+.pp-modal__close { margin-left: auto; font-size: 22px; line-height: 1; color: var(--pp-slate); }
+
+/* ---------------------------------------------------------- 空态 / 加载 */
+
+.pp-empty {
+  text-align: center;
+  padding: var(--pp-sp-64) var(--pp-sp-20);
+  color: var(--pp-slate);
+}
+.pp-spin {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border-radius: 99px;
+  border: 2px solid var(--pp-fog);
+  border-top-color: var(--pp-blue);
+  animation: pp-spin .7s linear infinite;
+}
+@keyframes pp-spin { to { transform: rotate(360deg); } }
+
+.pp-skel {
+  background: linear-gradient(90deg, #f0f2f4 25%, #e6e9ec 37%, #f0f2f4 63%);
+  background-size: 400% 100%;
+  animation: pp-skel 1.3s ease infinite;
+  border-radius: 12px;
+}
+@keyframes pp-skel { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+/* ---------------------------------------------------------- 登录页 */
+
+.pp-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--pp-sp-20);
+  background: var(--pp-white);
+}
+.pp-login__card {
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--pp-fog);
+  border-radius: var(--pp-radius-cards);
+  padding: var(--pp-sp-40);
+  box-shadow: var(--pp-shadow);
+}
+
+/* ---------------------------------------------------------- 日志 / 代码 */
+
+.pp-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  letter-spacing: 0;
+}
+.pp-code {
+  background: var(--pp-mist);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--pp-ink);
+}
+
+.pp-hr { height: 1px; background: var(--pp-fog); border: 0; margin: 0; }
+.pp-row { display: flex; align-items: center; gap: var(--pp-sp-12); flex-wrap: wrap; }
+.pp-spacer { flex: 1; }
+.pp-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

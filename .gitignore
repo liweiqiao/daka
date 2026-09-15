@@ -1,0 +1,41 @@
+# ===== 依赖 =====
+node_modules/
+web/node_modules/
+server/node_modules/
+
+# ===== 构建产物（web/dist 带 hash，可随时 npm run build 重建） =====
+web/dist/
+web/dist_stale/
+
+# ===== 密钥与环境配置（★ 绝不能进仓库：含 JWT_SECRET / 管理员密码） =====
+.env
+.env.*
+!.env.example
+server/deploy/env.production.example.bak
+
+# ===== 部署件（含服务器 IP / ssh 用法，仅本地保留，2026-09-15 移出版库） =====
+server/deploy/
+
+# ===== 运行时上传目录与演示备份 =====
+server/uploads/
+server/.tmp-uploads/
+server/uploads.demo-bak-*/
+server/.tmp-uploads.demo-bak-*/
+server/ffmpegtmp/
+
+# ===== 日志与临时文件 =====
+*.log
+*.err
+npm-debug.log*
+logs/
+*.pid
+*.seed
+
+# ===== OS / 编辑器 =====
+Thumbs.db
+.DS_Store
+Desktop.ini
+~$*
+*.swp
+.idea/
+.vscode/
