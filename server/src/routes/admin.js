@@ -604,7 +604,27 @@ router.get('/export/:type', async (ctx) => {
 
 // ------------------------------------------------------------------ 任务字典
 
-/** 任务字典只读展示。改字典会让已有快照（daka_checkin 里的 theme/task_name）对不上，故不开放编辑 */
+/** 默认任务字典（tasks-data.js 是唯一默认值来源，「恢复默认」按 天+主题 反查） */
+const TASK_DEFAULTS = require('../../db/tasks-data');
+
+/** 校验并夹紧任务编辑表单，返回 { error } 或 { value } */
+function normalizeTaskBody(body) {
+  const theme = String(body.theme || '').trim();
+  const name = String(body.name || '').trim();
+  const desc = String(body.desc || '').trim();
+  const how = String(body.how || '').trim();
+  const offlinePoint = String(body.offlinePoint || '').trim();
+  const isOffline = body.isOffline === true || body.isOffline === 1 || body.isOffline === '1' || body.isOffline === 'true';
+
+  if (!TASK_DEFAULTS.THEMES.includes(theme)) return { error: '主题不合法' };
+  if (!name) return { error: '任务名不能为空' };
+  if (name.length > 64) return { error: '任务名最多 64 字' };
+  if (desc.length > 255) return { error: '玩法最多 255 字' };
+  if (how.length > 255) return { error: '打卡要求最多 255 字' };
+  if (offlinePoint.length > 32) return { error: '线下打卡点名称最多 32 字' };
+  return { value: { theme, name, desc, how, isOffline, offlinePoint: isOffline ? offlinePoint : '' } };
+}
+
 router.get('/tasks', async (ctx) => {
   const rows = await db.q(
     `SELECT t.*,
@@ -627,6 +647,53 @@ router.get('/tasks', async (ctx) => {
   });
 });
 
+/** 编辑单项任务。老打卡记录里的主题/任务名是冗余快照，天然不受影响 */
+router.put('/tasks/:id', async (ctx) => {
+  const id = sql.int(ctx.params.id, 0, { min: 1 });
+  const row = await db.one('SELECT * FROM daka_task WHERE id = ?', [id]);
+  if (!row) throw http.notFound('任务不存在');
+
+  const norm = normalizeTaskBody(ctx.request.body || {});
+  if (norm.error) throw http.bad(norm.error);
+
+  const dup = await db.one(
+    'SELECT id FROM daka_task WHERE day_date = ? AND theme = ? AND id <> ?',
+    [row.day_date, norm.value.theme, id]
+  );
+  if (dup) throw http.conflict(`这一天「${norm.value.theme}」主题已有任务（一天一个主题只有一项）`);
+
+  await db.exec(
+    `UPDATE daka_task
+        SET theme = ?, task_name = ?, task_desc = ?, task_how = ?, is_offline = ?, offline_point = ?
+      WHERE id = ?`,
+    [norm.value.theme, norm.value.name, norm.value.desc, norm.value.how,
+     norm.value.isOffline ? 1 : 0, norm.value.offlinePoint, id]
+  );
+  await log(ctx, 'UPDATE_TASK', `task:${id}`,
+    `10月${Number(String(row.day_date).slice(8, 10))}日「${row.task_name}」已编辑为「${norm.value.name}」`);
+  http.ok(ctx, { message: '已保存，参与者端立即生效' });
+});
+
+/** 恢复默认：把这一项还原成 tasks-data.js 里的原始内容（按当前 天+主题 反查） */
+router.post('/tasks/:id/reset', async (ctx) => {
+  const id = sql.int(ctx.params.id, 0, { min: 1 });
+  const row = await db.one('SELECT * FROM daka_task WHERE id = ?', [id]);
+  if (!row) throw http.notFound('任务不存在');
+
+  const day = TASK_DEFAULTS.DAYS.find((d) => d.date === String(row.day_date));
+  const def = day && day.tasks.find((t) => t.theme === row.theme);
+  if (!def) throw http.notFound(`默认字典里找不到这一天「${row.theme}」主题的任务（主题可能被改过），请手动改回`);
+
+  await db.exec(
+    `UPDATE daka_task
+        SET task_name = ?, task_desc = ?, task_how = ?, is_offline = ?, offline_point = ?
+      WHERE id = ?`,
+    [def.name, def.desc, def.how, def.offline ? 1 : 0, def.offline ? (day.offline || '') : '', id]
+  );
+  await log(ctx, 'RESET_TASK', `task:${id}`, `10月${Number(String(row.day_date).slice(8, 10))}日「${def.name}」已恢复默认内容`);
+  http.ok(ctx, { message: '已恢复默认内容' });
+});
+
 // ------------------------------------------------------------------ 设置
 
 router.get('/settings', async (ctx) => {
@@ -639,10 +706,21 @@ router.get('/settings', async (ctx) => {
 });
 
 router.put('/settings', async (ctx) => {
-  const body = ctx.request.body || {};
-  const values = await settings.setMany(body.values || body);
-  await log(ctx, 'UPDATE_SETTINGS', 'config', `更新配置：${Object.keys(body.values || body).join(', ')}`);
-  http.ok(ctx, { values, message: '设置已保存，立即生效' });
+  try {
+    const body = ctx.request.body || {};
+    const payload = body.values || body;
+    const values = await settings.setMany(payload);
+    await log(ctx, 'UPDATE_SETTINGS', 'config', `更新配置：${Object.keys(payload).join(', ')}`);
+    http.ok(ctx, { values, message: '设置已保存，立即生效' });
+  } catch (e) {
+    if (e && e.status) {
+      ctx.status = e.status;
+      ctx.body = { ok: false, code: e.code, message: e.message };
+    } else {
+      ctx.status = 500;
+      ctx.body = { ok: false, code: 'ERR', message: e.message || '保存失败' };
+    }
+  }
 });
 
 router.get('/oplog', async (ctx) => {

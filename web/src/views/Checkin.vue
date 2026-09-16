@@ -2,16 +2,17 @@
   <ParticipantShell>
     <section class="o-section" style="flex: 1; padding-bottom: 0">
       <div class="o-container">
-        <!-- 未登记：不硬跳转，给个明确的入口，避免用户以为链接坏了 -->
-        <div v-if="!checking && !isRegistered" class="o-card o-card--pad-lg" style="text-align: center">
-          <div class="o-eyebrow">NEED REGISTER</div>
-          <h2 class="o-h2">先登记一次才能打卡</h2>
-          <p class="o-text-muted o-text-sm" style="margin-top: 12px; line-height: 1.7">
-            姓名、学校、联系方式只需要填这一次，之后每天打开就直接打卡。
+        <!-- 没登记过（或换了手机、清了缓存）：就地填这三项，填完原地继续打卡。
+             打开链接就是打卡页，不再先跳一个"登记页"再跳回来。 -->
+        <div v-if="needRegister" class="o-card o-card--pad-lg" style="max-width: 560px; margin: 0 auto">
+          <div class="o-eyebrow">STEP 1</div>
+          <h2 class="o-h2" style="margin-top: 8px">先填一次信息</h2>
+          <p class="o-text-muted o-text-sm" style="margin-top: 10px; line-height: 1.7">
+            姓名、学校、联系方式只填这一次，以后每天打开这个链接就直接打卡。
           </p>
-          <router-link to="/register" class="o-btn o-btn--primary o-btn--lg" style="margin-top: 24px">
-            去登记
-          </router-link>
+          <div style="margin-top: 24px">
+            <RegisterForm submit-text="填好了，去打卡" @registered="onRegistered" />
+          </div>
         </div>
 
         <template v-else>
@@ -76,11 +77,16 @@
               <div v-if="task.isOffline && task.offlinePoint" class="o-task__how">
                 <b>打卡点：</b>{{ task.offlinePoint }}
               </div>
-              <div class="o-task__how"><b>怎么拍：</b>{{ task.how }}</div>
+              <div class="o-task__how"><b>打卡指引：</b>{{ task.how }}</div>
 
               <!-- 已打过卡：只展示，不允许再选 -->
               <div v-if="task.done" class="o-task__foot">
                 <span class="o-text-caption o-text-muted">这一项今天已经打卡，明天再来</span>
+              </div>
+
+              <!-- 非活动期预览：只看内容，不开放选择 -->
+              <div v-else-if="previewMode" class="o-task__foot">
+                <span class="o-text-caption o-text-muted">活动开始后开放打卡</span>
               </div>
 
               <div v-else class="o-task__foot">
@@ -203,6 +209,7 @@ import { useRouter } from 'vue-router';
 import ParticipantShell from '../components/ParticipantShell.vue';
 import Modal from '../components/Modal.vue';
 import MediaUploader from '../components/MediaUploader.vue';
+import RegisterForm from '../components/RegisterForm.vue';
 import { api } from '../api.js';
 import { state, hasToken, isRegistered, loadMe, loadActivity, loadTaskDict, applyProgress, markDoneThemes } from '../appstate.js';
 import { uuid, mdText } from '../utils.js';
@@ -223,6 +230,12 @@ const result = reactive({ open: false, title: '', accepted: [], skipped: [], pro
 const confirmMissing = reactive({ open: false, tasks: [] });
 
 const act = computed(() => state.activity || {});
+/**
+ * 要不要就地填信息：
+ *   判据是"本地有没有 token + 服务端认不认"，不是 state.me 加载了没。
+ *   刷新页面时 state.me 必然是 null，用它判断会把已经登记过的家长挡在门外。
+ */
+const needRegister = computed(() => !checking.value && !isRegistered.value);
 const limits = computed(() => act.value.limits || {
   photoMaxMB: 10, videoMaxMB: 30, videoMaxSec: 90, photoMaxCount: 9, videoMaxCount: 1,
 });
@@ -234,6 +247,8 @@ const inWindow = computed(() => {
   const t = state.me && state.me.today;
   return t ? t.inActivity : true;
 });
+/** 非活动期 = 预览态：任务卡只展示内容，不开放勾选/上传（提交会被服务端窗口校验拒绝） */
+const previewMode = computed(() => !inWindow.value);
 
 const todayText = computed(() => {
   const t = state.me && state.me.today;
@@ -291,7 +306,19 @@ async function load() {
       loading.value = false;
       return;
     }
-    const data = await api.myTasks();
+    let data = await api.myTasks();
+    // 非活动期当天查不到任何任务行，列表会整页空白，刚登记的家长会以为系统坏了。
+    // 改成拉「最近的那个活动日」的任务做只读预览（活动前看首日、活动后看末日），
+    // 日期全部取自后台动态配置，不写死；预览态卡片由模板里的 previewMode 置为只读。
+    if (!data.tasks?.length && previewMode.value && act.value.dates && act.value.dates.length) {
+      const dates = act.value.dates;
+      const todayStr = (state.me.today && state.me.today.date) || state.today || '';
+      const previewDate = todayStr && todayStr < dates[0] ? dates[0] : dates[dates.length - 1];
+      try {
+        const preview = await api.myTasks(previewDate);
+        if (preview.tasks && preview.tasks.length) data = preview;
+      } catch (e) { /* 预览拉不到就维持空列表，上面的提示卡已兜底 */ }
+    }
     taskList.value = data.tasks || [];
     taskList.value.forEach((t) => {
       if (!sel[t.id]) sel[t.id] = { media: [], remark: '' };
@@ -305,6 +332,11 @@ async function load() {
 }
 
 onMounted(load);
+
+/** 就地登记完成：token 已经落地，重新走一遍加载，页面自己会切成打卡视图 */
+async function onRegistered() {
+  await load();
+}
 
 // 从别处回来时刷新一下"今天做了什么"，避免显示出过期的状态
 watch(() => state.me && state.me.progress && state.me.progress.total, () => {

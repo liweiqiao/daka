@@ -1,49 +1,48 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 20px">
-    <div class="pp-card pp-card--pad-sm">
+    <Card :body-style="{ padding: '20px' }">
       <div class="pp-filters">
-        <button
+        <Tag
           v-for="t in tabs"
           :key="t.key"
-          class="pp-tag"
-          :class="{ 'is-on': activeTab === t.key }"
-          type="button"
+          :class="activeTab === t.key ? 'dub-tag--accent' : ''"
+          style="cursor: pointer"
           @click="activeTab = t.key"
         >
           {{ t.label }}
-        </button>
+        </Tag>
 
-        <input v-model="keyword" class="pp-input pp-input--sm" style="min-width: 200px" placeholder="按姓名 / 学校筛选" @keyup.enter="reload" />
+        <Input v-model:value="keyword" size="small" style="min-width: 200px" placeholder="按姓名 / 学校筛选" @keyup.enter="reload" />
 
         <div class="pp-spacer"></div>
 
-        <button class="pp-btn pp-btn--outline pp-btn--sm" type="button" :disabled="busy" @click="reload">刷新</button>
-        <button class="pp-btn pp-btn--dark pp-btn--sm" type="button" :disabled="busy" @click="exportCsv">导出荣誉名单</button>
+        <Button size="small" :disabled="busy" @click="reload">刷新</Button>
+        <Button type="primary" size="small" :disabled="busy" @click="exportCsv">导出荣誉名单</Button>
       </div>
-    </div>
+    </Card>
 
     <!-- 规则说明 -->
     <div class="pp-grid pp-grid--3">
-      <div class="pp-kpi" :class="{ 'pp-kpi--brand': activeTab === 'allThemes' }">
-        <div class="pp-kpi__label">全能少年</div>
-        <div class="pp-kpi__value">{{ n(counts.allThemes) }}<span class="pp-kpi__unit">人</span></div>
-        <div class="pp-kpi__foot">7 个主题每个至少完成 1 次</div>
-      </div>
-      <div class="pp-kpi" :class="{ 'pp-kpi--brand': activeTab === 'dakaMaster' }">
-        <div class="pp-kpi__label">打卡达人</div>
-        <div class="pp-kpi__value">{{ n(counts.dakaMaster) }}<span class="pp-kpi__unit">人</span></div>
-        <div class="pp-kpi__foot">累计有效打卡 ≥ {{ thresholds.dakaMaster }} 次</div>
-      </div>
-      <div class="pp-kpi" :class="{ 'pp-kpi--brand': activeTab === 'themeStar' }">
-        <div class="pp-kpi__label">主题之星</div>
-        <div class="pp-kpi__value">{{ n(starTotal) }}<span class="pp-kpi__unit">人次</span></div>
-        <div class="pp-kpi__foot">单个主题完成 ≥ {{ thresholds.themeStar }} 次</div>
-      </div>
+      <Card class="dub-kpi" :body-style="{ padding: '20px' }" :class="{ 'dub-kpi--brand': activeTab === 'allThemes' }">
+        <div class="dub-kpi__label">全能少年</div>
+        <div class="dub-kpi__value">{{ n(counts.allThemes) }}<span class="dub-kpi__unit">人</span></div>
+        <div class="dub-kpi__foot">7 个主题每个至少完成 1 次</div>
+      </Card>
+      <Card class="dub-kpi" :body-style="{ padding: '20px' }" :class="{ 'dub-kpi--brand': activeTab === 'dakaMaster' }">
+        <div class="dub-kpi__label">打卡达人</div>
+        <div class="dub-kpi__value">{{ n(counts.dakaMaster) }}<span class="dub-kpi__unit">人</span></div>
+        <div class="dub-kpi__foot">累计有效打卡 ≥ {{ thresholds.dakaMaster }} 次</div>
+      </Card>
+      <Card class="dub-kpi" :body-style="{ padding: '20px' }" :class="{ 'dub-kpi--brand': activeTab === 'themeStar' }">
+        <div class="dub-kpi__label">主题之星</div>
+        <div class="dub-kpi__value">{{ n(starTotal) }}<span class="dub-kpi__unit">人次</span></div>
+        <div class="dub-kpi__foot">单个主题完成 ≥ {{ thresholds.themeStar }} 次</div>
+      </Card>
     </div>
 
-    <div v-if="loading" class="pp-card">
+    <Card v-if="loading">
       <div v-for="i in 5" :key="i" class="pp-skel" style="height: 38px; margin-bottom: 8px"></div>
-    </div>
+    </Card>
 
     <!-- 全能少年 -->
     <template v-else-if="activeTab === 'allThemes'">
@@ -69,7 +68,7 @@
             <span class="pp-mono">{{ record.phoneRaw }}</span>
           </template>
           <template v-else-if="column.key === 'themes'">
-            <span class="pp-badge pp-badge--done">{{ record.themes }}/7</span>
+            <Tag class="dub-tag--done">{{ record.themes }}/7</Tag>
           </template>
         </template>
       </Table>
@@ -107,13 +106,13 @@
 
     <!-- 主题之星 -->
     <template v-else>
-      <div v-if="!data.themeStar.length" class="pp-card pp-empty">还没有人达成「主题之星」</div>
+      <Card v-if="!data.themeStar.length" class="pp-empty">还没有人达成「主题之星」</Card>
       <div v-else class="pp-grid pp-grid--2" style="align-items: start">
-        <div v-for="g in data.themeStar" :key="g.theme" class="pp-card">
+        <Card v-for="g in data.themeStar" :key="g.theme">
           <div class="pp-section-head">
-            <span class="pp-badge" :style="themeTagStyle(g.theme)">
+            <Tag :style="themeTagStyle(g.theme)">
               {{ g.theme }}
-            </span>
+            </Tag>
             <span class="pp-caption">{{ g.list.length }} 人达 {{ thresholds.themeStar }} 次以上</span>
           </div>
           <div class="star-list">
@@ -123,7 +122,7 @@
               <span class="star__num">{{ p.themeCount }} 次</span>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     </template>
   </div>
@@ -131,7 +130,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { Table } from 'ant-design-vue';
+import { Table, Card, Button, Input, Tag } from 'ant-design-vue';
 import { adminApi, download } from '../../api.js';
 import { THEME_COLORS } from '../../utils.js';
 import { toastOk, toastErr } from '../../toast.js';
@@ -224,7 +223,7 @@ onMounted(reload);
   align-items: baseline;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--pp-fog);
+  border-bottom: 1px solid var(--dub-line);
   font-size: 14px;
 }
 .star:last-child { border-bottom: none; }

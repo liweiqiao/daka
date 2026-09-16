@@ -39,3 +39,7 @@ Desktop.ini
 *.swp
 .idea/
 .vscode/
+
+# ===== 验收临时输出（会话级，不入库） =====
+_verify*.txt
+server/shots_ui/

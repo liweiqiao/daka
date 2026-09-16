@@ -1,26 +1,26 @@
 /* ============================================================
-   antd-planpoint.css —— ant-design-vue 的 Planpoint 覆盖层
+   antd-planpoint.css —— ant-design-vue 的「蓝图白」覆盖层
+   + 没有 a-v 等价物的布局 / 排版工具类。
 
-   为什么需要这一层：a-v 自带一整套设计系统（#1677ff 主色、4px 圆角、
-   1px 实边框、表头灰底 #fafafa）。要它长得像 Planpoint，
-   光靠 ConfigProvider 的 token 只能改到七八成，剩下两三成
-   （表头分隔线、行 hover、分页按钮形状、空态图标）必须在这里按死。
-
-   两条纪律：
-     1. **只覆盖 a-v 的类名，不要改 .pp-* 的既有语义**。
-        这一层只对后台生效（参与者端根本不加载它）。
-     2. token 能改的优先在 ConfigProvider 改（见 AdminLayout.vue），
-        这里只放 token 表达不了的。两处都能改的会被这里盖掉，
-        所以改配色请先改 token，别在这里加颜色。
-
-   ★ 规范约束（改之前先读 design/后台参考/DESIGN.md）：
-     · 唯一彩色动作是 #0f68ea；亮黄 #ffcb00 只做徽章
-     · 圆角只用 46.8 / 28.8 / 100 / 18 四档，不新增第五档
-     · 唯一的阴影是 rgba(0,0,0,.06) 0 8px 48px
+   设计依据：design/后台参考/DESIGN.md（Planpoint 蓝图白规范）
+     · 唯一彩色动作色是 #0f68ea；亮黄 #ffcb00 只做「需留意」徽章
+     · 圆角只用 100（药丸）/ 28.8（卡片）/ 18（输入）三档，不新增第四档
+     · 唯一的阴影是 rgba(0,0,0,.06) 0 8px 48px，只给浮层（下拉/弹窗/提示）
      · 正文与图标一律 #1d1d1f，不用纯黑
+     · 系统内任何地方都不许出现渐变
+
+   两层内容：
+     1. .pp-antd 作用域下的 a-v 组件覆盖（表格/分页/按钮/输入/标签/弹窗/菜单…）
+     2. 布局 / 排版工具类（外壳、栅格、图表头、媒体宫格…）
+        —— 这些类沿用 --dub-* 变量名（历史命名），已在 .pp-antd 作用域
+           内把它们重新映射成蓝图白的值，所以无需改动 9 个后台视图。
+
+   ★ 纪律：只覆盖 a-v 类名，不改 .pp-* 既有语义；配色优先在
+     admin-ui.js 的 ConfigProvider token 里改，这里只放 token 表达不了的。
    ============================================================ */
 
 .pp-antd {
+  /* —— 蓝图白调色板（供 a-v 覆盖层与图表作用域 PPChart 共用）—— */
   --pp-ink: #1d1d1f;
   --pp-slate: #333333;
   --pp-fog: #e5e6e8;
@@ -30,58 +30,78 @@
   --pp-radius-cards: 28.8px;
   --pp-radius-inputs: 18px;
   --pp-shadow: rgba(0, 0, 0, 0.06) 0px 8px 48px 0px;
+
+  /* —— 历史工具类变量别名：映射到蓝图白 —— */
+  --dub-font: 'Inter', ui-sans-serif, system-ui, -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --dub-ink: #1d1d1f;
+  --dub-slate: #333333;
+  --dub-fog: #888780;
+  --dub-line: #e5e6e8;
+  --dub-mist: #f0f2f4;
+  --dub-blue: #0f68ea;
+  --dub-blue-deep: #2f7ceb;
+  --dub-dark: #1d1d1f;
+  --dub-radius-cards: 28.8px;
+  --dub-radius-large: 28.8px;
+  --dub-radius-inputs: 18px;
+  --dub-radius-buttons: 100px;
+  --dub-radius-pill: 100px;
+  --dub-shadow: rgba(0, 0, 0, 0.06) 0px 8px 48px 0px;
+
+  font-family: var(--dub-font);
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  color: var(--pp-ink);
+  background: #ffffff;
 }
 
-/* ---------------------------------------------------------- 表格 */
+/* ============================================================
+   1. ant-design-vue 组件覆盖
+   ============================================================ */
 
-/* 外层给 Planpoint 的卡片圆角，内层表格保持方形 ——
+/* ---------------------------------------------------------- 卡片 */
+.pp-antd .ant-card {
+  border: 1px solid var(--pp-fog);
+  border-radius: var(--pp-radius-cards);
+  box-shadow: none;            /* 蓝图白：发丝线代替阴影 */
+}
+.pp-antd .ant-card-head { border-bottom: 1px solid var(--pp-fog); min-height: auto; }
+.pp-antd .ant-card-head-title { font-size: 16px; font-weight: 600; color: var(--pp-ink); }
+
+/* ---------------------------------------------------------- 表格 */
+/* 外层给蓝图白卡片圆角，内层表格保持方形 ——
    圆角在容器上、直角在数据上，这是蓝图表格的正确形态。 */
 .pp-antd .ant-table-wrapper {
   border: 1px solid var(--pp-fog);
   border-radius: var(--pp-radius-cards);
   overflow: hidden;
 }
-
-.pp-antd .ant-table {
-  /* 去掉 a-v 默认的表头渐变/底色过渡，Planpoint 是平的 */
-  background: transparent;
-}
-
+.pp-antd .ant-table { background: transparent; }
 .pp-antd .ant-table-thead > tr > th {
   background: var(--pp-mist);
   color: var(--pp-slate);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.02em;
-  /* a-v 默认给表头单元格之间画竖分隔线，Planpoint 里没有这种东西 */
   border-bottom: none;
   border-inline-end: none !important;
   white-space: nowrap;
 }
-.pp-antd .ant-table-thead > tr > th::before {
-  display: none !important;
-}
-
+.pp-antd .ant-table-thead > tr > th::before { display: none !important; }
 .pp-antd .ant-table-tbody > tr > td {
   border-bottom: 1px solid var(--pp-fog);
   font-size: 14px;
   color: var(--pp-ink);
 }
 .pp-antd .ant-table-tbody > tr:last-child > td { border-bottom: none; }
-.pp-antd .ant-table-tbody > tr.ant-table-row:hover > td {
-  background: #fafbfc;
-}
-
-/* 表头排序图标的默认色太浅，在白底灰头上几乎看不见 */
+.pp-antd .ant-table-tbody > tr.ant-table-row:hover > td { background: #fafbfc; }
 .pp-antd .ant-table-column-sorter { color: rgba(29, 29, 31, 0.35); }
 .pp-antd .ant-table-column-sorter-up.active,
 .pp-antd .ant-table-column-sorter-down.active { color: var(--pp-blue); }
-
-/* 单元格里的紧凑排布：a-v 默认行高偏松，后台是要一屏看几十行的地方 */
 .pp-antd .ant-table-tbody > tr > td,
 .pp-antd .ant-table-thead > tr > th { padding: 12px 16px; }
-
-/* 固定列会投一条渐变阴影，Planpoint 不许有渐变 —— 换成一根实线 */
+/* 固定列会投一条渐变阴影，蓝图白不许有渐变 —— 换成一根实线 */
 .pp-antd .ant-table-cell-fix-left::after,
 .pp-antd .ant-table-cell-fix-right::after { box-shadow: none !important; }
 .pp-antd .ant-table-cell-fix-left-last::after,
@@ -89,15 +109,12 @@
   box-shadow: none !important;
   border-inline-end: 1px solid var(--pp-fog);
 }
-
-/* 空态：a-v 自带一张插画，跟蓝图风格冲突，只留一句人话 */
 .pp-antd .ant-empty-image { display: none; }
 .pp-antd .ant-empty-normal { margin: 0; padding: 40px 0; }
 .pp-antd .ant-empty-description { color: var(--pp-slate); font-size: 14px; }
 
 /* ---------------------------------------------------------- 分页 */
-
-/* 药丸几何：分页按钮必须是圆的，这是 Planpoint 不可妥协的一条 */
+/* 药丸几何：分页按钮必须是圆的，这是蓝图白不可妥协的一条 */
 .pp-antd .ant-pagination { margin-top: 20px; }
 .pp-antd .ant-pagination-item,
 .pp-antd .ant-pagination-prev .ant-pagination-item-link,
@@ -111,24 +128,24 @@
 .pp-antd .ant-pagination-item-active a { color: #fff; }
 .pp-antd .ant-pagination-total-text { color: var(--pp-slate); font-size: 14px; }
 
-/* ---------------------------------------------------------- 选择器 / 输入 */
-
+/* ---------------------------------------------------------- 输入 / 选择 / 日期 */
 .pp-antd .ant-select-selector,
 .pp-antd .ant-input,
 .pp-antd .ant-input-affix-wrapper,
-.pp-antd .ant-picker {
+.pp-antd .ant-picker,
+.pp-antd .ant-input-number {
   border-radius: var(--pp-radius-inputs) !important;
   border-color: var(--pp-fog);
 }
 .pp-antd .ant-select-focused .ant-select-selector,
 .pp-antd .ant-input:focus,
+.pp-antd .ant-input-focused,
 .pp-antd .ant-input-affix-wrapper-focused,
-.pp-antd .ant-picker-focused {
+.pp-antd .ant-picker-focused,
+.pp-antd .ant-input-number-focused {
   border-color: var(--pp-blue) !important;
   box-shadow: 0 0 0 4px rgba(15, 104, 234, 0.1) !important;
 }
-
-/* 下拉面板：唯一的阴影、输入框那档圆角 */
 .pp-antd .ant-select-dropdown,
 .pp-antd .ant-picker-dropdown .ant-picker-panel-container {
   border-radius: var(--pp-radius-inputs);
@@ -141,8 +158,7 @@
   font-weight: 600;
 }
 
-/* ---------------------------------------------------------- 气泡 / 提示 */
-
+/* ---------------------------------------------------------- 气泡 / 提示 / 菜单浮层 */
 .pp-antd .ant-tooltip-inner {
   border-radius: var(--pp-radius-inputs);
   background: var(--pp-ink);
@@ -150,15 +166,19 @@
   box-shadow: var(--pp-shadow);
 }
 .pp-antd .ant-tooltip-arrow::before { background: var(--pp-ink); }
-
 .pp-antd .ant-popover-inner {
   border-radius: var(--pp-radius-inputs);
   box-shadow: var(--pp-shadow);
   border: 1px solid var(--pp-fog);
 }
 
-/* ---------------------------------------------------------- 弹窗 */
+.pp-antd .ant-menu { background: transparent; border-inline-end: none !important; }
+.pp-antd .ant-menu-item { border-radius: 100px; height: 44px; line-height: 44px; }
+.pp-antd .ant-menu-item-selected { color: var(--pp-blue); font-weight: 600; background: transparent; }
+.pp-antd .ant-menu-item-selected::after { display: none; }
+.pp-antd .ant-menu-item:hover { background: var(--pp-mist); }
 
+/* ---------------------------------------------------------- 弹窗 */
 .pp-antd .ant-modal-content {
   border-radius: var(--pp-radius-cards);
   box-shadow: var(--pp-shadow);
@@ -170,7 +190,6 @@
 .pp-antd .ant-modal-close { border-radius: 100px; }
 
 /* ---------------------------------------------------------- 标签 / 徽章 */
-
 .pp-antd .ant-tag {
   border-radius: 100px !important;
   border-color: var(--pp-fog);
@@ -178,9 +197,14 @@
   color: var(--pp-slate);
   font-size: 13px;
   padding-inline: 11px;
+  line-height: 20px;
 }
-/* a-v 预设的 success/error/warning 色板在 Planpoint 里没有落点，
-   统一收回到「黄＝需留意 / 蓝＝正常」这一对（与 .pp-badge 保持一致） */
+/* a-tag 的可勾选（筛选 chips）用主色蓝表示选中态，已是 a-v 原生行为 */
+.pp-antd .ant-tag-checkable-checked { background: var(--pp-blue); color: #fff; border-color: var(--pp-blue); }
+.pp-antd .ant-tag-checkable:hover { color: var(--pp-blue); }
+.pp-antd .ant-tag-checkable-checked:hover { color: #fff; }
+/* a-v 预设的 success/error/warning 色板在蓝图白里没有落点，
+   统一收回到「黄＝需留意 / 蓝＝正常」这一对 */
 .pp-antd .ant-tag-success,
 .pp-antd .ant-tag-error,
 .pp-antd .ant-tag-warning {
@@ -191,16 +215,36 @@
 }
 .pp-antd .ant-tag-processing { background: rgba(15, 104, 234, 0.1); border-color: transparent; color: var(--pp-blue); }
 
-/* ---------------------------------------------------------- 按钮 */
+/* 状态徽章助手：统一用「蓝点缀 / 黄需留意 / 近黑」三档，不引入额外彩色 */
+.pp-antd .dub-tag--accent,
+.pp-antd .dub-tag--new,
+.pp-antd .dub-tag--blue,
+.pp-antd .dub-tag--done {
+  background: rgba(15, 104, 234, 0.1);
+  border-color: transparent;
+  color: var(--pp-blue);
+  font-weight: 600;
+}
+.pp-antd .dub-tag--warn {
+  background: rgba(255, 203, 0, 0.16);
+  border-color: transparent;
+  color: var(--pp-ink);
+  font-weight: 600;
+}
+.pp-antd .dub-tag--dark { background: var(--dub-dark); border-color: var(--dub-dark); color: #fff; }
 
+/* ---------------------------------------------------------- 按钮
+   主操作 = 蓝图蓝 #0f68ea；默认 = 墨色描边；文字型 = 纯文字 */
 .pp-antd .ant-btn { border-radius: 100px; font-weight: 600; }
-.pp-antd .ant-btn-primary { background: var(--pp-blue); }
-.pp-antd .ant-btn-primary:not(:disabled):hover { background: #2f7ceb; }
+.pp-antd .ant-btn-primary { background: var(--pp-blue); border-color: var(--pp-blue); }
+.pp-antd .ant-btn-primary:not(:disabled):hover { background: #2f7ceb; border-color: #2f7ceb; }
 .pp-antd .ant-btn-default { border-color: var(--pp-ink); color: var(--pp-ink); }
 .pp-antd .ant-btn-default:not(:disabled):hover { background: var(--pp-mist); border-color: var(--pp-ink); color: var(--pp-ink); }
+.pp-antd .ant-btn-link { color: var(--pp-blue); }
+.pp-antd .ant-btn-text { color: var(--pp-ink); }
+.pp-antd .ant-btn-text:not(:disabled):hover { background: var(--pp-mist); color: var(--pp-ink); }
 
-/* ---------------------------------------------------------- 其它 */
-
+/* ---------------------------------------------------------- 其它浮层 / 控件 */
 .pp-antd .ant-spin-dot-item { background-color: var(--pp-blue); }
 .pp-antd .ant-switch.ant-switch-checked { background: var(--pp-blue); }
 .pp-antd .ant-checkbox-checked .ant-checkbox-inner { background: var(--pp-blue); border-color: var(--pp-blue); }
@@ -210,4 +254,206 @@
   border-radius: var(--pp-radius-inputs);
   box-shadow: var(--pp-shadow);
   border: 1px solid var(--pp-fog);
+}
+
+/* 卡片内浅底变体 */
+.pp-antd .dub-card--mist > .ant-card-body,
+.pp-antd .dub-card--mist .ant-card-body { background: var(--dub-mist); }
+.dub-card--mist { background: var(--dub-mist); border-color: transparent; }
+
+/* ============================================================
+   2. KPI 排版（a-v 无 KPI 组件，用 a-card 承载）
+   ============================================================ */
+.dub-kpi {
+  background: #fff;
+  border: 1px solid var(--dub-line);
+  border-radius: var(--dub-radius-cards);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.dub-kpi--brand { background: var(--dub-blue); border-color: var(--dub-blue); color: #fff; }
+.dub-kpi--brand .dub-kpi__label, .dub-kpi--brand .dub-kpi__foot { color: rgba(255, 255, 255, 0.85); }
+.dub-kpi--dark { background: var(--dub-dark); border-color: var(--dub-dark); color: #fff; }
+.dub-kpi--dark .dub-kpi__label, .dub-kpi--dark .dub-kpi__foot { color: rgba(255, 255, 255, 0.7); }
+.dub-kpi__label { font-size: 14px; font-weight: 500; color: var(--dub-slate); }
+.dub-kpi__value { font-size: 44px; font-weight: 700; letter-spacing: -1.8px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.dub-kpi__unit { font-size: 18px; font-weight: 600; margin-left: 4px; letter-spacing: 0; }
+.dub-kpi__foot { font-size: 13px; color: var(--dub-slate); }
+
+/* ============================================================
+   3. 布局 / 排版工具类（无 a-v 等价物，作为外壳与栅格使用）
+   ============================================================ */
+
+/* ------------------------------------------------ 外壳布局 */
+.pp-shell { display: flex; min-height: 100vh; }
+.pp-side {
+  width: 232px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--dub-line);
+  padding: 28px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: #fff;
+}
+.pp-brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 8px; }
+.pp-brand__mark { width: 22px; height: 22px; background: var(--dub-blue); transform: rotate(45deg); border-radius: 3px; flex-shrink: 0; }
+.pp-brand__text { font-size: 18px; font-weight: 700; letter-spacing: -0.4px; color: var(--dub-ink); }
+.pp-brand__sub { font-size: 12px; color: var(--dub-slate); font-weight: 400; }
+.pp-side__foot { margin-top: auto; font-size: 12px; color: var(--dub-slate); padding: 0 8px; line-height: 1.6; }
+
+.pp-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pp-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--dub-line);
+  padding: 16px 40px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.pp-top__title { font-size: 22px; font-weight: 600; letter-spacing: -1.32px; line-height: 1.2; }
+.pp-top__meta { font-size: 14px; color: var(--dub-slate); }
+.pp-top__right { margin-left: auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pp-body { padding: 28px 40px 64px; display: flex; flex-direction: column; gap: 28px; }
+
+/* 演练模式横幅（服务端把「今天」改成活动期内某天时出现）—— 蓝图白用亮黄提示 */
+.pp-simbar {
+  margin-bottom: -28px;
+  padding: 8px 14px;
+  border-radius: 18px;
+  background: #fff8e1;
+  border: 1px solid var(--pp-highlight);
+  color: #1d1d1f;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+@media (max-width: 1000px) {
+  .pp-simbar { margin-bottom: -16px; }
+  .pp-shell { flex-direction: column; }
+  .pp-side {
+    width: 100%; height: auto; position: static;
+    border-right: none; border-bottom: 1px solid var(--dub-line); padding: 16px;
+  }
+  .pp-side__foot { display: none; }
+  .pp-top, .pp-body { padding-left: 16px; padding-right: 16px; }
+}
+
+/* ------------------------------------------------ 标题 / 文本 */
+.pp-h1 { font-size: 29px; font-weight: 700; letter-spacing: -1.28px; line-height: 1.25; }
+.pp-h2 { font-size: 22px; font-weight: 600; letter-spacing: -1.32px; line-height: 1.3; }
+.pp-h3 { font-size: 18px; font-weight: 600; letter-spacing: -0.6px; }
+.pp-lead { font-size: 16px; color: var(--dub-slate); line-height: 1.6; }
+.pp-caption { font-size: 14px; color: var(--dub-slate); }
+.pp-section-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.pp-section-head__right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+/* ------------------------------------------------ 栅格 / 排版工具 */
+.pp-grid { display: grid; gap: 16px; }
+.pp-grid--4 { grid-template-columns: repeat(4, 1fr); }
+.pp-grid--3 { grid-template-columns: repeat(3, 1fr); }
+.pp-grid--2 { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 1180px) { .pp-grid--4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 860px) { .pp-grid--3, .pp-grid--2 { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .pp-grid--4 { grid-template-columns: 1fr; } }
+
+.pp-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pp-spacer { flex: 1; }
+/* 筛选工具条：条件项与操作按钮排成一行；靠 .pp-spacer(flex:1) 把右侧按钮顶到最右。
+   桌面宽度下自然成一行，窄屏再优雅换行，避免溢出。 */
+.pp-filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* 筛选项里的 antd 控件（Input/Select/DatePicker）默认 width:100%，会各自占满一行。
+   在 .pp-antd 作用域下用更高优先级把它们收成固定宽度，配合上面的 flex 排成一行；
+   !important 用来压过 ant-design-vue cssinjs 运行时注入的 100% 宽度。 */
+.pp-antd .pp-filters .ant-input,
+.pp-antd .pp-filters .ant-select,
+.pp-antd .pp-filters .ant-picker { flex: 0 0 auto !important; }
+.pp-antd .pp-filters .ant-input { width: 200px !important; }
+.pp-antd .pp-filters .ant-select { width: 160px !important; }
+.pp-antd .pp-filters .ant-picker { width: 150px !important; }
+.pp-antd .pp-filters .ant-btn { flex: 0 0 auto !important; }
+.pp-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-hr { height: 1px; background: var(--dub-line); border: 0; margin: 0; }
+
+/* ------------------------------------------------ 表单字段 */
+.pp-field { display: flex; flex-direction: column; gap: 6px; }
+.pp-label { font-size: 13px; font-weight: 600; color: var(--dub-ink); }
+
+/* ------------------------------------------------ 图表卡头（a-card 内自定义头） */
+.pp-chartcard__head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.pp-chartcard__right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.pp-chartcard__note { font-size: 13px; color: var(--dub-slate); line-height: 1.6; }
+.pp-chart { width: 100%; overflow-x: auto; }
+.pp-chart svg { display: block; }
+.pp-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--dub-slate); }
+.pp-legend__item { display: inline-flex; align-items: center; gap: 6px; }
+.pp-legend__swatch { width: 10px; height: 10px; border-radius: 3px; }
+
+.pp-chartgrid { display: grid; gap: 16px; }
+.pp-chartgrid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pp-chartgrid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1180px) { .pp-chartgrid--3 { grid-template-columns: 1fr; } }
+@media (max-width: 980px) { .pp-chartgrid--2 { grid-template-columns: 1fr; } }
+.pp-chart--scroll { overflow-x: auto; }
+.pp-chart--scroll > * { min-width: 560px; }
+
+/* ------------------------------------------------ 媒体缩略宫格（无 a-v 等价物） */
+.pp-media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.pp-media { border: 1px solid var(--dub-line); border-radius: var(--dub-radius-inputs); overflow: hidden; background: #fff; }
+.pp-media__box { aspect-ratio: 1; background: var(--dub-mist); overflow: hidden; }
+.pp-media__box img, .pp-media__box video { width: 100%; height: 100%; object-fit: cover; }
+.pp-media__meta { padding: 8px 12px; font-size: 12px; color: var(--dub-slate); line-height: 1.5; }
+
+/* ------------------------------------------------ 空态 / 加载 / 代码 */
+.pp-empty { text-align: center; padding: 64px 20px; color: var(--dub-slate); }
+/* 骨架屏用透明度脉冲代替渐变（蓝图白规范：系统内不许渐变） */
+.pp-skel {
+  background: var(--dub-mist);
+  border-radius: 18px;
+  animation: pp-skel 1.3s ease infinite;
+}
+@keyframes pp-skel { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+.pp-spin {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border-radius: 99px;
+  border: 2px solid var(--dub-line);
+  border-top-color: var(--dub-blue);
+  animation: pp-spin 0.7s linear infinite;
+}
+@keyframes pp-spin { to { transform: rotate(360deg); } }
+.pp-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; letter-spacing: 0; }
+.pp-code {
+  background: var(--dub-mist);
+  border-radius: 18px;
+  padding: 12px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--dub-ink);
+}
+
+/* ------------------------------------------------ 登录页 */
+.pp-login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: #fff; }
+.pp-login__card {
+  width: 100%; max-width: 420px;
+  border: 1px solid var(--dub-line);
+  border-radius: var(--dub-radius-large);
+  padding: 40px;
+  box-shadow: var(--dub-shadow);
 }

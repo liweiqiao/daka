@@ -413,58 +413,12 @@ async function duplicates(limit = 500) {
   }));
 }
 
-// ------------------------------------------------------------- 公开战报
+// --------------------------------------------------------- 姓名脱敏
 
 /**
- * 给参与者看的公开数据。
- * 刻意只给"总次数、总人数、今日排名、荣誉榜 Top"，不给手机号、不给学校
- * 之外的个体信息 —— 未成年人活动的公开页面不适合暴露太多个人数据。
+ * 公开页面上的姓名一律脱敏：「张*三」。
+ * 后台明细给全名，公开场合（照片墙等）只给这个拼音。
  */
-async function publicBoard(limit = 20) {
-  const today = time.today();
-  const lim = sql.int(limit, 20, { min: 1, max: 100 });
-  const [ov, rank, tr, topPeople] = await Promise.all([
-    overview(today),
-    dailyTaskRank(today),
-    trend(),
-    db.q(
-      `SELECT p.id, p.name, p.school, COUNT(c.id) AS total, COUNT(DISTINCT c.theme) AS themes
-         FROM daka_participant p
-         JOIN daka_checkin c ON c.participant_id = p.id
-        GROUP BY p.id, p.name, p.school
-        ORDER BY total DESC, themes DESC, p.id ASC
-        LIMIT ${lim}`
-    ),
-  ]);
-
-  return {
-    generatedAt: time.nowStr(),
-    date: today,
-    total: {
-      checkins: ov.totalCheckins,
-      people: ov.totalPeople,
-      days: time.activityDates().length,
-      avgPerPerson: ov.avgPerPerson,
-    },
-    today: {
-      checkins: ov.today.checkins,
-      people: ov.today.people,
-      max: rank.max,
-      min: rank.min,
-      tasks: rank.list,
-    },
-    trend: tr,
-    top: topPeople.map((r, i) => ({
-      rank: i + 1,
-      // 公开榜只显示姓 + 名字末字，降低可识别性（"张*三"）
-      name: maskName(r.name),
-      school: r.school,
-      total: Number(r.total),
-      themes: Number(r.themes),
-    })),
-  };
-}
-
 function maskName(n) {
   const s = String(n || '');
   if (s.length <= 2) return s.slice(0, 1) + '*';
@@ -664,7 +618,6 @@ module.exports = {
   schoolRank,
   honors,
   duplicates,
-  publicBoard,
   dayDistribution,
   themeCoverage,
   hourlyDistribution,

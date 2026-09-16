@@ -130,7 +130,8 @@ export const api = {
   health: () => request('/api/health'),
   activity: () => request('/api/activity'),
   tasks: () => request('/api/tasks'),
-  board: () => request('/api/board'),
+  // 首页「清城少年立志瞬间」：公开照片墙，limit 是池子大小（前端一次显示 5 张）
+  gallery: (limit) => request('/api/gallery', { query: { limit } }),
 
   register: (body) => request('/api/participant/register', { method: 'POST', body }),
   login: (body) => request('/api/participant/login', { method: 'POST', body }),
@@ -172,6 +173,8 @@ export const adminApi = {
   cleanupMedia: (body) => request('/api/admin/media/cleanup', { method: 'POST', body, admin: true, timeout: 180000 }),
 
   tasks: () => request('/api/admin/tasks', { admin: true }),
+  updateTask: (id, payload) => request(`/api/admin/tasks/${id}`, { method: 'PUT', body: payload, admin: true }),
+  resetTask: (id) => request(`/api/admin/tasks/${id}/reset`, { method: 'POST', admin: true }),
   settings: () => request('/api/admin/settings', { admin: true }),
   saveSettings: (values) => request('/api/admin/settings', { method: 'PUT', body: { values }, admin: true }),
   oplog: (pageSize) => request('/api/admin/oplog', { admin: true, query: { pageSize } }),

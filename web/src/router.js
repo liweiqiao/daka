@@ -13,7 +13,6 @@ const routes = [
   { path: '/register', name: 'register', component: () => import('./views/Register.vue'), meta: { title: '登记信息' } },
   { path: '/checkin', name: 'checkin', component: () => import('./views/Checkin.vue'), meta: { title: '今日打卡' } },
   { path: '/records', name: 'records', component: () => import('./views/Records.vue'), meta: { title: '我的记录' } },
-  { path: '/board', name: 'board', component: () => import('./views/Board.vue'), meta: { title: '打卡战报' } },
 
   { path: '/admin/login', name: 'admin-login', component: () => import('./views/admin/Login.vue'), meta: { title: '后台登录', bare: true } },
   {

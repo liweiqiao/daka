@@ -4,7 +4,7 @@
  * 接口验收脚本 —— 不依赖浏览器，直接用 HTTP 打一遍关键链路。
  *
  * 覆盖：健康检查 → 登记 → 任务字典 → 领凭证 → 上传 → 提交打卡 →
- *      重复提交拦截 → 空白提交拦截 → 我的记录 → 公开战报 → 后台统计/导出
+ *      重复提交拦截 → 空白提交拦截 → 我的记录 → 公开照片墙 → 后台统计/导出
  *
  * 用法：
  *   node test/smoke.js                         打本机 3000
@@ -254,17 +254,25 @@ async function main() {
   ok('GET /api/me/records 返回按天分组', rec.json && Array.isArray(rec.json.data.days));
   ok('记录里带进度信息', rec.json && !!rec.json.data.progress);
 
-  // ---------------------------------------------------------- 6. 公开战报
-  console.log('\n[6] 公开战报');
-  const board = await call('/api/board', { expectFail: true });
-  if (board.status === 200) {
-    const b = board.json.data;
-    ok('战报含累计打卡次数/人数', typeof b.total.checkins === 'number' && typeof b.total.people === 'number');
-    ok('战报含当日最多/最少项目', Array.isArray(b.today.max) && Array.isArray(b.today.min));
-    ok('战报趋势覆盖全部活动日期', b.trend.length === 7, { len: b.trend.length });
-    ok('排行榜姓名已脱敏', b.top.every((p) => p.name.includes('*') || p.name.length <= 2), b.top[0]);
+  // ---------------------------------------------------------- 6. 公开照片墙
+  console.log('\n[6] 公开照片墙（清城少年立志瞬间）');
+  const gallery = await call('/api/gallery', { expectFail: true });
+  if (gallery.status === 200) {
+    const g = gallery.json.data;
+    ok('照片墙返回数据对象（items 数组 + total 数字）',
+      Array.isArray(g.items) && typeof g.total === 'number', g);
+    if (g.items.length) {
+      ok('照片墙每条带脱敏姓名与图片地址',
+        g.items.every((p) => typeof p.name === 'string' && !!p.url), g.items[0]);
+      ok('照片墙姓名已脱敏（张*三式）',
+        g.items.every((p) => p.name.includes('*') || p.name.length <= 2), g.items[0]);
+      ok('照片墙只展示图片（不含视频）',
+        g.items.every((p) => p.type === 'image'), g.items[0]);
+    } else {
+      console.log('    （当前尚未有打卡照片，照片墙返回空列表，属正常空态）');
+    }
   } else {
-    console.log(`    （战报未公开，status=${board.status}，跳过相关断言）`);
+    console.log(`    （照片墙未公开，status=${gallery.status}，跳过相关断言）`);
   }
 
   // ---------------------------------------------------------- 7. 后台

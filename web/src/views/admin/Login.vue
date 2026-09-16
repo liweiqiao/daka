@@ -1,5 +1,5 @@
 <template>
-  <div class="pp pp-login">
+  <div class="pp-antd pp-login">
     <div class="pp-login__card">
       <div class="pp-brand" style="padding: 0 0 8px">
         <span class="pp-brand__mark"></span>
@@ -15,24 +15,27 @@
       <form style="margin-top: 28px; display: flex; flex-direction: column; gap: 16px" @submit.prevent="submit">
         <div class="pp-field">
           <label class="pp-label" for="a-user">账号</label>
-          <input id="a-user" ref="userRef" v-model.trim="form.username" class="pp-input" type="text" autocomplete="username" placeholder="admin" />
+          <!-- 用原生 input 挂 ant-input 类：既能拿到 a-v 外观，又能直接 ref 读取真实 DOM 值，
+               避免浏览器/密码管家自动填充不触发 input 事件时误判空（这是已知的登录误报成因） -->
+          <input id="a-user" ref="userRef" v-model.trim="form.username" class="ant-input" type="text" autocomplete="username" placeholder="admin" />
         </div>
         <div class="pp-field">
           <label class="pp-label" for="a-pwd">密码</label>
-          <input id="a-pwd" ref="pwdRef" v-model="form.password" class="pp-input" type="password" autocomplete="current-password" placeholder="••••••••" />
+          <input id="a-pwd" ref="pwdRef" v-model="form.password" class="ant-input" type="password" autocomplete="current-password" placeholder="••••••••" />
         </div>
 
-        <p v-if="error" class="pp-badge pp-badge--warn" style="align-self: flex-start">{{ error }}</p>
+        <Button v-if="error" type="text" danger block disabled style="text-align: left; height: auto; padding: 0">
+          {{ error }}
+        </Button>
 
-        <button class="pp-btn" type="submit" :disabled="loading" style="margin-top: 4px">
-          <span v-if="loading" class="pp-spin"></span>
+        <Button type="primary" html-type="submit" :loading="loading" style="margin-top: 4px">
           {{ loading ? '登录中…' : '登录后台' }}
-        </button>
+        </Button>
       </form>
 
       <p class="pp-caption" style="margin-top: 24px; line-height: 1.7">
         忘记密码请在服务器上重设：
-        <code>node db/init.js --admin-only</code>
+        <code class="pp-mono">node db/init.js --admin-only</code>
       </p>
     </div>
   </div>
@@ -41,6 +44,7 @@
 <script setup>
 import { reactive, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { Button } from 'ant-design-vue';
 import { adminApi, store } from '../../api.js';
 
 const router = useRouter();

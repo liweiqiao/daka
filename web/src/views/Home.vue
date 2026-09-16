@@ -1,27 +1,10 @@
 <template>
   <ParticipantShell>
-    <!-- Hero：整幅落日渐变 band，全站唯一使用渐变的地方。
-         两条手写标注各配一支手绘箭头，分别指向标题和主按钮 ——
-         规范要求标注必须"指向一个具体元素"，光有文字就成了漂浮的装饰。 -->
+    <!-- Hero：白底编辑式，无渐变、无手绘标注（严格按 DESIGN.md：装饰插画与渐变只用于品牌视觉） -->
     <header class="o-hero">
-      <span class="o-annot o-annot--a">
-        7 天，一天一件事
-        <svg viewBox="0 0 46 34" fill="none" aria-hidden="true">
-          <path d="M5 5c13 1 25 9 28 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-          <path d="M26 21l7 5 2-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </span>
-      <span class="o-annot o-annot--b">
-        拍下来就算数
-        <svg viewBox="0 0 46 34" fill="none" aria-hidden="true">
-          <path d="M5 5c13 1 25 9 28 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-          <path d="M26 21l7 5 2-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </span>
-
       <div class="o-container o-container--narrow">
-        <div class="o-eyebrow">清城少年志 · 国庆七天</div>
-        <h1 class="o-hero__title">{{ act.title }}</h1>
+        <div class="o-eyebrow">{{ act.heroEyebrow }}</div>
+        <h1 class="o-hero__title">{{ act.heroTitle }}</h1>
         <p class="o-hero__sub">{{ act.subtitle }}</p>
 
         <div class="o-hero__cta">
@@ -45,48 +28,17 @@
       </div>
     </div>
 
-    <!-- 怎么玩 -->
-    <section class="o-section">
-      <div class="o-container">
-        <div class="o-eyebrow" style="text-align: center">HOW IT WORKS</div>
-        <h2 class="o-h2" style="text-align: center">三步就能打卡，信息只填一次</h2>
-
-        <div class="o-steps" style="margin-top: 40px">
-          <div class="o-step">
-            <span class="o-step__no">1</span>
-            <div>
-              <div class="o-step__body">填一次信息</div>
-              <div class="o-step__note">姓名、学校、联系方式。联系方式是后期证书发放的凭证，请填准。填一次就够，之后每天不用再填。</div>
-            </div>
-          </div>
-          <div class="o-step">
-            <span class="o-step__no">2</span>
-            <div>
-              <div class="o-step__body">选今天要做的主题</div>
-              <div class="o-step__note">可以只挑一个，做完就提交；也可以一次挑好几个，集中上传。同一个主题一天只能打一次卡。</div>
-            </div>
-          </div>
-          <div class="o-step">
-            <span class="o-step__no">3</span>
-            <div>
-              <div class="o-step__body">传照片，完成</div>
-              <div class="o-step__note">
-                <template v-if="act.limits.videoMaxCount > 0">照片是必须的，视频可传可不传。</template>
-                传完点提交，在「我的记录」里随时能翻自己做过什么。
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <!-- 清城少年立志瞬间：孩子们自己交上来的照片，一次看 5 张，一直往下滚 -->
+    <MomentWall />
 
     <!-- 七个主题 -->
-    <section class="o-section" style="background: #fffdf3">
+    <section class="o-section">
       <div class="o-container">
         <div class="o-eyebrow" style="text-align: center">SEVEN THEMES</div>
         <h2 class="o-h2" style="text-align: center">每天七件事，挑一件做就行</h2>
         <p class="o-text-muted o-text-sm" style="text-align: center; margin-top: 12px">
-          七天里同一个主题可以做多次，但一天只算一次
+          每天7个主题任务，可以选择一个或多个完成哦<br />
+          同一主题一天提交一次即可，重复提交会被过滤哦
         </p>
 
         <div class="theme-grid">
@@ -111,37 +63,8 @@
       </div>
     </section>
 
-    <!-- 荣誉 -->
-    <section class="o-section">
-      <div class="o-container">
-        <div class="o-eyebrow" style="text-align: center">HONORS</div>
-        <h2 class="o-h2" style="text-align: center">三个荣誉，够得着但不容易</h2>
-
-        <div class="honor-grid">
-          <div class="o-card o-card--pad-lg">
-            <div class="o-badge o-badge--success">全能少年</div>
-            <p class="o-text-sm" style="margin-top: 12px; line-height: 1.7">
-              {{ act.honors.allThemes }} 个主题，每个至少完成 1 次。
-            </p>
-          </div>
-          <div class="o-card o-card--pad-lg">
-            <div class="o-badge o-badge--success">打卡达人</div>
-            <p class="o-text-sm" style="margin-top: 12px; line-height: 1.7">
-              累计有效打卡满 {{ act.honors.dakaMaster }} 次，不限主题。
-            </p>
-          </div>
-          <div class="o-card o-card--pad-lg">
-            <div class="o-badge o-badge--success">主题之星</div>
-            <p class="o-text-sm" style="margin-top: 12px; line-height: 1.7">
-              同一个主题做满 {{ act.honors.themeStar }} 次。
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- 说明与注意事项 -->
-    <section class="o-section" style="background: #fffdf3">
+    <section class="o-section" style="background: var(--color-paper-mist)">
       <div class="o-container o-container--narrow">
         <div class="o-eyebrow">BEFORE YOU START</div>
         <h2 class="o-h2">打卡说明</h2>
@@ -170,7 +93,7 @@
           </ul>
         </div>
 
-        <div class="o-card" style="margin-top: 16px; background: #faf7fa; box-shadow: none; border: 1px solid var(--color-plum-tinted)">
+        <div class="o-card" style="margin-top: 16px; background: var(--color-paper-mist); box-shadow: none; border: 1px solid var(--color-plum-tinted)">
           <div class="o-label">{{ act.limits.videoMaxCount > 0 ? '关于照片和视频' : '关于照片' }}</div>
           <p class="o-text-sm o-text-muted" style="line-height: 1.8; margin-top: 6px">
             凭证仅用于本次活动的核验与成果展示。孩子的照片请避免出现门牌号、身份证、学校门禁卡等敏感信息，
@@ -186,11 +109,11 @@
         <div>
           <h2 class="o-h2">今天还没打卡？</h2>
           <p class="o-text-muted o-text-sm" style="margin-top: 8px">
-            {{ act.inActivity ? (hasToken ? '随时可以去补上今天的这一项。' : '登记一次，之后每天都不用再填信息。') : '活动还没开始，先把信息登记好。' }}
+            {{ act.inActivity ? (hasToken ? '随时可以去补上今天的这一项。' : '你的每一次坚持，我们都看见啦！') : '活动还没开始，先去看看今天的任务。' }}
           </p>
         </div>
         <router-link :to="primaryTo" class="o-btn o-btn--primary o-btn--lg">
-          {{ hasToken ? '去打卡' : '开始登记' }}
+          {{ hasToken ? '去打卡' : '开始打卡' }}
         </router-link>
       </div>
     </section>
@@ -200,12 +123,15 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import ParticipantShell from '../components/ParticipantShell.vue';
+import MomentWall from '../components/MomentWall.vue';
 import { loadActivity, loadTaskDict, loadMe, state, hasToken } from '../appstate.js';
 import { themeColor, mdText } from '../utils.js';
 import { toastErr } from '../toast.js';
 
 const act = computed(() => state.activity || {
   title: '清城少年志 · 国庆七天打卡',
+  heroEyebrow: '第四届清城少年志国庆打卡活动',
+  heroTitle: '少年有志 · 清城有光',
   subtitle: '', intro: '', notice: '', certificateNote: '',
   dates: [], themes: ['专注', '乐观', '希望', '自信', '感恩', '坚韧', '活力'],
   limits: { photoMaxMB: 10, videoMaxMB: 30, videoMaxSec: 90, photoMaxCount: 9, videoMaxCount: 1 },
@@ -216,11 +142,11 @@ const act = computed(() => state.activity || {
 const offlineDays = ref([]);
 
 /**
- * 「去打卡 / 开始登记」按本地 token 判断。
- * 不用 isRegistered：那个还要求 state.me 已加载，而首页加载时它还是 null，
- * 会让已经登记过的家长看到"开始登记"，好像白登记了一样。
+ * 「去打卡 / 开始打卡」一律去打卡页。
+ * 信息没填过的孩子，打卡页里会自己出现那三个输入框；
+ * 不再先跳一次 /register —— 少一跳，家长少一次"是不是点错了"的犹豫。
  */
-const primaryTo = computed(() => (hasToken.value ? '/checkin' : '/register'));
+const primaryTo = '/checkin';
 
 const dateRangeText = computed(() => {
   const d = act.value.dates || [];
@@ -253,8 +179,9 @@ onMounted(async () => {
 
 .theme-tile {
   background: var(--color-canvas);
+  border: 1px solid var(--color-ash);
   border-radius: var(--radius-cards);
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
   padding: 20px 12px;
   display: flex;
   flex-direction: column;
@@ -266,14 +193,6 @@ onMounted(async () => {
 
 .offline-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
 .offline-item { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-
-.honor-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 40px;
-}
-@media (max-width: 760px) { .honor-grid { grid-template-columns: 1fr; } }
 
 .rules { display: flex; flex-direction: column; gap: 10px; }
 .rules li {

@@ -1,24 +1,24 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 28px">
     <!-- 日期与导出 -->
-    <div class="pp-card" style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap">
+    <Card :body-style="{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }">
       <div class="pp-field" style="flex-direction: row; align-items: center; gap: 10px">
         <label class="pp-label" for="d-date" style="white-space: nowrap">查看日期</label>
-        <input id="d-date" :value="date" class="pp-input pp-input--sm" type="date" @change="onDate" />
+        <DatePicker id="d-date" v-model:value="date" value-format="YYYY-MM-DD" size="small" @change="onDate" />
       </div>
-      <button class="pp-tag" :class="{ 'is-on': isToday }" type="button" @click="pickToday">回到今天</button>
-      <span v-if="overview" class="pp-badge pp-badge--blue">
+      <Tag checkable :checked="isToday" @change="onBackToday">回到今天</Tag>
+      <Tag v-if="overview" class="dub-tag--blue">
         活动第 {{ overview.activity.dayIndex }} / {{ overview.activity.totalDays }} 天
-      </span>
+      </Tag>
 
       <div class="pp-spacer"></div>
 
       <div style="display: flex; gap: 8px; flex-wrap: wrap">
-        <button class="pp-btn pp-btn--outline pp-btn--sm" type="button" :disabled="busy" @click="refresh">刷新</button>
-        <button class="pp-btn pp-btn--outline pp-btn--sm" type="button" :disabled="busy" @click="exportCsv('checkins')">导出打卡明细</button>
-        <button class="pp-btn pp-btn--dark pp-btn--sm" type="button" :disabled="busy" @click="exportCsv('participants')">导出参与者</button>
+        <Button size="small" :disabled="busy" @click="refresh">刷新</Button>
+        <Button size="small" :disabled="busy" @click="exportCsv('checkins')">导出打卡明细</Button>
+        <Button type="primary" size="small" :disabled="busy" @click="exportCsv('participants')">导出参与者</Button>
       </div>
-    </div>
+    </Card>
 
     <!-- 核心 KPI -->
     <div v-if="!data" class="pp-grid pp-grid--4">
@@ -27,31 +27,31 @@
 
     <template v-else>
       <div class="pp-grid pp-grid--4">
-        <div class="pp-kpi pp-kpi--brand">
-          <div class="pp-kpi__label">累计打卡次数</div>
-          <div class="pp-kpi__value">{{ n(ov.totalCheckins) }}</div>
-          <div class="pp-kpi__foot">每完成 1 项任务算 1 次</div>
-        </div>
-        <div class="pp-kpi">
-          <div class="pp-kpi__label">累计打卡人数</div>
-          <div class="pp-kpi__value">{{ n(ov.totalPeople) }}</div>
-          <div class="pp-kpi__foot">至少完成过 1 次</div>
-        </div>
-        <div class="pp-kpi">
-          <div class="pp-kpi__label">{{ isToday ? '今日' : selDate + ' 当日' }}打卡次数</div>
-          <div class="pp-kpi__value">{{ n(ov.today.checkins) }}</div>
-          <div class="pp-kpi__foot">{{ n(ov.today.people) }} 人参与 · {{ n(ov.today.batches) }} 次提交</div>
-        </div>
-        <div class="pp-kpi pp-kpi--dark">
-          <div class="pp-kpi__label">人均打卡</div>
-          <div class="pp-kpi__value">{{ ov.avgPerPerson }}<span class="pp-kpi__unit">次</span></div>
-          <div class="pp-kpi__foot">{{ ov.totalDays }} 天累计，满勤约 {{ ov.activity.totalDays * 7 }} 次</div>
-        </div>
+        <Card class="dub-kpi dub-kpi--brand" :body-style="{ padding: '0' }">
+          <div class="dub-kpi__label">累计打卡次数</div>
+          <div class="dub-kpi__value">{{ n(ov.totalCheckins) }}</div>
+          <div class="dub-kpi__foot">每完成 1 项任务算 1 次</div>
+        </Card>
+        <Card class="dub-kpi" :body-style="{ padding: '0' }">
+          <div class="dub-kpi__label">累计打卡人数</div>
+          <div class="dub-kpi__value">{{ n(ov.totalPeople) }}</div>
+          <div class="dub-kpi__foot">至少完成过 1 次</div>
+        </Card>
+        <Card class="dub-kpi" :body-style="{ padding: '0' }">
+          <div class="dub-kpi__label">{{ isToday ? '今日' : selDate + ' 当日' }}打卡次数</div>
+          <div class="dub-kpi__value">{{ n(ov.today.checkins) }}</div>
+          <div class="dub-kpi__foot">{{ n(ov.today.people) }} 人参与 · {{ n(ov.today.batches) }} 次提交</div>
+        </Card>
+        <Card class="dub-kpi dub-kpi--dark" :body-style="{ padding: '0' }">
+          <div class="dub-kpi__label">人均打卡</div>
+          <div class="dub-kpi__value">{{ ov.avgPerPerson }}<span class="dub-kpi__unit">次</span></div>
+          <div class="dub-kpi__foot">{{ ov.totalDays }} 天累计，满勤约 {{ ov.activity.totalDays * 7 }} 次</div>
+        </Card>
       </div>
 
-      <!-- 漏斗 + 荣誉达标：这两个回答的是"参与有多深、有多少人够得着荣誉" -->
+      <!-- 漏斗 + 荣誉达标 -->
       <div class="pp-chartgrid pp-chartgrid--2">
-        <div class="pp-card pp-chartcard">
+        <Card class="pp-chartcard">
           <div class="pp-chartcard__head">
             <h2 class="pp-h3">参与漏斗</h2>
             <span class="pp-caption">每一层都是去重后的人数</span>
@@ -68,9 +68,9 @@
               <span class="pp-caption">（上一层留存 {{ s.rateFromPrev }}%）</span>
             </span>
           </div>
-        </div>
+        </Card>
 
-        <div class="pp-card pp-chartcard">
+        <Card class="pp-chartcard">
           <div class="pp-chartcard__head">
             <h2 class="pp-h3">荣誉达标</h2>
             <span class="pp-caption">门槛可在活动设置里改</span>
@@ -81,27 +81,27 @@
             :empty="honorEmpty"
             empty-text="还没有人达标"
           />
-        </div>
+        </Card>
       </div>
 
       <!-- 七天趋势 -->
-      <div class="pp-card pp-chartcard">
+      <Card class="pp-chartcard">
         <div class="pp-chartcard__head">
           <h2 class="pp-h3">七天趋势</h2>
           <span class="pp-chartcard__note">柱＝打卡次数（左轴），线＝参与人数与提交批次（右轴）</span>
         </div>
         <PPChart :option="trendOpt" :height="300" :empty="!trend.length" empty-text="活动还没开始" />
-      </div>
+      </Card>
 
-      <!-- 提交时段：决定"当天几点发提醒" -->
-      <div class="pp-card pp-chartcard">
+      <!-- 提交时段 -->
+      <Card class="pp-chartcard">
         <div class="pp-chartcard__head">
           <h2 class="pp-h3">提交时段分布</h2>
           <span class="pp-chartcard__note">按提交批次计。峰值是提醒的最佳发送时间</span>
           <div v-if="hourlyData.peakHour !== null" class="pp-chartcard__right">
-            <span class="pp-badge pp-badge--new">
+            <Tag class="dub-tag--new">
               峰值 {{ String(hourlyData.peakHour).padStart(2, '0') }}:00 · {{ n(hourlyData.peakBatches) }} 次
-            </span>
+            </Tag>
           </div>
         </div>
         <PPChart
@@ -110,11 +110,11 @@
           :empty="!hourlyData.total"
           empty-text="还没有提交记录"
         />
-      </div>
+      </Card>
 
-      <!-- 热力图 + 学校排行 -->
+      <!-- 热力图 + 七主题 -->
       <div class="pp-chartgrid pp-chartgrid--2">
-        <div class="pp-card pp-chartcard">
+        <Card class="pp-chartcard">
           <div class="pp-chartcard__head">
             <h2 class="pp-h3">日期 × 主题</h2>
             <span class="pp-caption">颜色越深打卡越集中</span>
@@ -122,25 +122,25 @@
           <div class="pp-chart pp-chart--scroll">
             <PPChart :option="heatmapOpt" :height="320" :empty="!matrix.cells || !matrix.cells.length" />
           </div>
-        </div>
+        </Card>
 
-        <div class="pp-card pp-chartcard">
+        <Card class="pp-chartcard">
           <div class="pp-chartcard__head">
             <h2 class="pp-h3">七主题分布</h2>
             <span class="pp-caption">看哪个主题参与了最少</span>
           </div>
           <PPChart :option="radarOpt" :height="320" :empty="!matrix.byTheme || !matrix.byTheme.length" />
-        </div>
+        </Card>
       </div>
 
       <!-- 学校排行 -->
-      <div class="pp-card pp-chartcard">
+      <Card class="pp-chartcard">
         <div class="pp-chartcard__head">
           <h2 class="pp-h3">学校排行</h2>
           <span class="pp-chartcard__note">按打卡次数，取前 10，颜色越深名次越高</span>
         </div>
         <PPChart :option="schoolOpt" :height="380" :empty="!data.schools.length" empty-text="还没有数据" />
-      </div>
+      </Card>
 
       <!-- 当日项目冷热 -->
       <div>
@@ -149,93 +149,93 @@
           <span class="pp-caption">活动方最关心的两个数：哪个项目人最多、哪个最少</span>
         </div>
         <div class="pp-grid pp-grid--2" style="margin-bottom: 16px">
-          <div class="pp-card pp-card--pad-sm">
+          <Card :body-style="{ padding: '20px' }">
             <div class="pp-row" style="margin-bottom: 12px">
-              <span class="pp-badge pp-badge--new">打卡最多</span>
+              <Tag class="dub-tag--new">打卡最多</Tag>
               <span class="pp-caption">{{ daily.weekday }} · 共 {{ n(daily.checkins) }} 次</span>
             </div>
             <div v-if="!daily.max.length" class="pp-empty" style="padding: 16px 0">当天还没有打卡记录</div>
             <div v-else class="pp-hot">
               <div v-for="t in daily.max" :key="t.taskId" class="pp-hot__item">
-                <span class="pp-badge" :style="themeTagStyle(t.theme)">{{ t.theme }}</span>
+                <Tag :style="themeTagStyle(t.theme)">{{ t.theme }}</Tag>
                 <span class="pp-hot__name">{{ t.taskName }}</span>
                 <span class="pp-hot__num">{{ t.count }} 人 · {{ t.people }} 人次</span>
               </div>
             </div>
-          </div>
+          </Card>
 
-          <div class="pp-card pp-card--pad-sm">
+          <Card :body-style="{ padding: '20px' }">
             <div class="pp-row" style="margin-bottom: 12px">
-              <span class="pp-badge">打卡最少</span>
+              <Tag>打卡最少</Tag>
               <span class="pp-caption">{{ daily.weekday }} · 需要留意推广力度</span>
             </div>
             <div v-if="!daily.min.length" class="pp-empty" style="padding: 16px 0">当天还没有打卡记录</div>
             <div v-else class="pp-hot">
               <div v-for="t in daily.min" :key="t.taskId" class="pp-hot__item">
-                <span class="pp-badge" :style="themeTagStyle(t.theme)">{{ t.theme }}</span>
+                <Tag :style="themeTagStyle(t.theme)">{{ t.theme }}</Tag>
                 <span class="pp-hot__name">{{ t.taskName }}</span>
                 <span class="pp-hot__num">{{ t.count }} 人</span>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
 
-        <div class="pp-card pp-chartcard">
+        <Card class="pp-chartcard">
           <div class="pp-chartcard__head">
             <h2 class="pp-h3">当天七项任务完成情况</h2>
             <span class="pp-caption">{{ selDate }} {{ daily.weekday }}</span>
             <span class="pp-chartcard__note">条形长度按完成人数，线下打卡点用浅灰单独标出</span>
           </div>
           <PPChart :option="dailyOpt" :height="300" :empty="!daily.tasks.length" empty-text="这一天没有任务" />
-        </div>
+        </Card>
       </div>
 
       <!-- 参与深度 + 资源占用 -->
       <div class="pp-chartgrid pp-chartgrid--3">
-        <div class="pp-card pp-chartcard">
+        <Card class="pp-chartcard">
           <div class="pp-chartcard__head">
             <h2 class="pp-h3">打卡天数分布</h2>
           </div>
           <PPChart :option="dayDistOpt" :height="240" :empty="!distData.length" />
           <p class="pp-caption" style="margin-top: 12px">黄色是打满全程的人，衡量活动粘性就看他</p>
-        </div>
+        </Card>
 
-        <div class="pp-card pp-chartcard">
+        <Card class="pp-chartcard">
           <div class="pp-chartcard__head">
             <h2 class="pp-h3">主题覆盖分布</h2>
           </div>
           <PPChart :option="coverageOpt" :height="240" :empty="!coverData.length" />
           <p class="pp-caption" style="margin-top: 12px">覆盖 7 个主题的即「全能少年」候选</p>
-        </div>
+        </Card>
 
-        <div class="pp-card">
+        <Card :body-style="{ padding: '20px' }">
           <h2 class="pp-h3" style="margin-bottom: 16px">资源占用</h2>
           <div class="res">
             <div class="res__row"><span>照片</span><b>{{ n(ov.media.photos) }} 张</b></div>
             <div class="res__row"><span>视频</span><b>{{ n(ov.media.videos) }} 段</b></div>
             <div class="res__row"><span>已占用空间</span><b>{{ ov.media.totalMB }} MB</b></div>
             <div class="res__row"><span>线下打卡点记录</span><b>{{ n(ov.offlineCheckins) }} 次</b></div>
-            <div class="res__row" style="border-top: 1px solid var(--pp-fog); padding-top: 12px; margin-top: 4px">
+            <div class="res__row" style="border-top: 1px solid var(--dub-line); padding-top: 12px; margin-top: 4px">
               <span>已登记未打卡</span>
               <b>{{ n(ov.idlePeople) }} 人</b>
-              <span v-if="ov.idlePeople > 0" class="pp-badge pp-badge--warn">待催</span>
+              <span v-if="ov.idlePeople > 0" class="dub-tag--warn">待催</span>
             </div>
             <div class="res__row">
               <span>待清理的孤儿文件</span>
               <b>{{ n(ov.pendingMedia) }} 个</b>
             </div>
           </div>
-          <router-link to="/admin/media" class="pp-btn pp-btn--outline pp-btn--sm" style="margin-top: 16px; width: 100%">
-            去附件页清理
+          <router-link to="/admin/media" custom v-slot="{ navigate }">
+            <Button size="small" block style="margin-top: 16px" @click="navigate">去附件页清理</Button>
           </router-link>
-        </div>
+        </Card>
       </div>
 
       <!-- 重名提醒 -->
-      <div v-if="data.duplicates.length" class="pp-card">
+      <Card v-if="data.duplicates.length">
         <div class="pp-section-head">
           <h2 class="pp-h3">重名提醒</h2>
-          <span class="pp-badge pp-badge--warn">{{ data.duplicates.length }} 组需要确认</span>
+          <Tag class="dub-tag--warn">{{ data.duplicates.length }} 组需要确认</Tag>
         </div>
         <p class="pp-lead" style="margin-bottom: 16px">
           名字相同、学校相同、手机号也相同 —— 大概率是同一个人被重复登记了两遍，建议核对后合并。
@@ -259,23 +259,20 @@
               {{ record.people.map((p) => p.total).join(' / ') }}
             </template>
             <template v-else-if="column.key === 'action'">
-              <router-link
-                :to="`/admin/participants?keyword=${encodeURIComponent(record.name)}`"
-                class="pp-btn pp-btn--ghost pp-btn--sm"
-              >
-                去核对
+              <router-link :to="`/admin/participants?keyword=${encodeURIComponent(record.name)}`" custom v-slot="{ navigate }">
+                <Button type="link" size="small" @click="navigate">去核对</Button>
               </router-link>
             </template>
           </template>
         </Table>
-      </div>
+      </Card>
     </template>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { Table } from 'ant-design-vue';
+import { Table, Card, Button, DatePicker, Tag } from 'ant-design-vue';
 import PPChart from '../../components/PPChart.vue';
 import { adminApi, download } from '../../api.js';
 import { THEME_COLORS } from '../../utils.js';
@@ -357,8 +354,14 @@ async function refresh() {
   }
 }
 
-function onDate(e) {
-  date.value = e.target.value;
+// a-date-picker 的 change 回传 (dayjs, 字符串)；这里只取字符串
+function onDate(_d, ds) {
+  date.value = ds || '';
+  refresh();
+}
+function onBackToday(checked) {
+  if (checked) { date.value = ''; }
+  else { date.value = selDate.value; }
   refresh();
 }
 function pickToday() {
@@ -391,6 +394,9 @@ onMounted(refresh);
 
 .res { display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
 .res__row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.res__row span { color: #333; }
+.res__row span { color: #404040; }
 .res__row b { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+/* 资源占用里的「待催」小标用 Dub 蓝点缀，不用额外彩色 */
+.res__row .dub-tag--warn { margin-left: 0; }
 </style>

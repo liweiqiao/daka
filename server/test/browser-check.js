@@ -211,8 +211,9 @@ async function main() {
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(1500);
   const afterReload = await page.locator('body').innerText();
-  ok('★ 刷新后仍保持登录态（不再要求重新登记）',
-    !/先登记一次才能打卡|去登记/.test(afterReload), { tail: afterReload.slice(0, 200) });
+  ok('★ 刷新后仍保持登录态（已登记者直接进打卡视图，不再要求填信息）',
+    !/先填一次信息/.test(afterReload) && /今天还没打卡|今天想做哪几件/.test(afterReload),
+    { tail: afterReload.slice(0, 200) });
   const stillHasToken = await page.evaluate(() => !!localStorage.getItem('daka.p.token'));
   ok('token 已写入 localStorage（关掉页面再打开也还在）', stillHasToken);
   await shot(page, '03b-after-reload');
@@ -244,6 +245,24 @@ async function main() {
   ok('确认后仍能正常进入打卡页（不会被重名卡住）', p2.url().includes('/checkin'),
     { url: p2.url().replace(BASE, '') });
   await ctx2.close();
+
+  // ------------------------------------------------------------ 2c. 未登记者进打卡页就地填表
+  // 要求 #4：打开链接直接到打卡页，没填过信息的孩子在打卡页里就地填那三项，
+  // 填过一次的（本地有 token）则不再出现。这里验「没填过」这一侧。
+  console.log('\n[2c] 未登记者访问 /checkin 就地出现登记表单');
+  const ctx3 = await browser.newContext(mobileOpts);
+  watchPage(ctx3);
+  const p3 = await ctx3.newPage();
+  watchPage(p3);
+  await p3.goto(BASE + '/checkin', { waitUntil: 'networkidle' });
+  await p3.waitForTimeout(1200);
+  await shot(p3, '02c-checkin-need-register');
+  const unregText = await p3.locator('body').innerText();
+  ok('未登记者打卡页出现「先填一次信息」就地登记入口',
+    /先填一次信息/.test(unregText), { tail: unregText.slice(0, 120) });
+  const unregInputs = await p3.locator('input').count();
+  ok('就地表单含三项输入框（姓名/学校/联系方式）', unregInputs >= 3, { unregInputs });
+  await ctx3.close();
 
   // ------------------------------------------------------------ 3. 打卡页
   console.log('\n[3] 打卡页（/checkin）');
@@ -325,16 +344,20 @@ async function main() {
     ok('记录页出现刚提交的内容', /2026-10-0\d/.test(recText), { tail: recText.slice(0, 200) });
   }
 
-  // ------------------------------------------------------------ 5. 公开战报
-  console.log('\n[5] 打卡战报（/board）');
-  await page.goto(BASE + '/board', { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1400);
-  await shot(page, '09-board');
-  const boardText = await page.locator('body').innerText();
-  ok('战报页有数据（累计/今日/排行）', /累计|今日|排行|次数/.test(boardText), { tail: boardText.slice(0, 160) });
-  // 图形不一定是 svg/canvas —— 这套皮肤用的是 CSS 柱条，这里两种都认
-  const chartOrBar = await page.locator('svg, canvas, [class*="bar"], [class*="trend"], [class*="chart"]').count();
-  ok('战报有图形化元素（图表/柱/趋势）', chartOrBar > 0, { chartOrBar });
+  // ------------------------------------------------------------ 5. 照片墙
+  console.log('\n[5] 清城少年立志瞬间（照片墙）');
+  await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  await shot(page, '09-gallery');
+  const home2 = await page.locator('body').innerText();
+  ok('首页出现「清城少年立志瞬间」照片墙区块',
+    /清城少年立志瞬间/.test(home2), { tail: home2.slice(0, 120) });
+  // 接口 403（后台关掉 gallery_public）时整块会消失；这里至少确认它正常渲染出来了
+  ok('照片墙区块渲染出说明文案（含空态占位）',
+    /MOMENTS|孩子们交上来的打卡照片|还没有照片/.test(home2));
+  // 旧的「打卡战报」入口必须彻底移除，不能还挂在导航或页面里
+  ok('旧的「打卡战报」板块已移除（页面不再含该文案）',
+    !/打卡战报/.test(home2), { hit: (home2.match(/打卡战报/) || [''])[0] });
 
   // ------------------------------------------------------------ 6. 后台
   console.log('\n[6] 统计后台（/admin）');
@@ -371,7 +394,7 @@ async function main() {
   // ★ 图表已升级为 ECharts：必须真的画在 <canvas> 上，不能只是占个位。
   // Dashboard 共 10 个 PPChart（漏斗/荣誉/趋势/时段/热力图/七主题/学校/当天七项/天数分布/覆盖），
   // 演示数据充足时全部应渲染，断言 >=8 留一点余量（个别图在空态下不画系列）。
-  const dashCanvas = await ap.locator('.pp-chartcard canvas').count();
+  const dashCanvas = await ap.locator('.ant-card canvas').count();
   ok('★ 总览页渲染出 ECharts 画布（图表真的画出来了）', dashCanvas >= 8, { dashCanvas });
   const canvasOk = await ap.evaluate(() => {
     const cs = Array.from(document.querySelectorAll('.pp-chartcard canvas'));

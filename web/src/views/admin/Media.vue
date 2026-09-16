@@ -2,116 +2,114 @@
   <div style="display: flex; flex-direction: column; gap: 20px">
     <!-- 空间概览 -->
     <div class="pp-grid pp-grid--4">
-      <div class="pp-kpi">
-        <div class="pp-kpi__label">文件总数</div>
-        <div class="pp-kpi__value">{{ n(sm.totalCount) }}</div>
-        <div class="pp-kpi__foot">{{ n(sm.photos) }} 张照片 · {{ n(sm.videos) }} 段视频</div>
-      </div>
-      <div class="pp-kpi">
-        <div class="pp-kpi__label">已占用空间</div>
-        <div class="pp-kpi__value">{{ sm.totalMB }}<span class="pp-kpi__unit">MB</span></div>
-        <div class="pp-kpi__foot">含未提交的临时文件</div>
-      </div>
-      <div class="pp-kpi" :class="{ 'pp-kpi--dark': sm.orphanCount > 0 }">
-        <div class="pp-kpi__label">待清理（上传未提交）</div>
-        <div class="pp-kpi__value">{{ n(sm.orphanCount) }}</div>
-        <div class="pp-kpi__foot">约 {{ sm.orphanMB }} MB 可以回收</div>
-      </div>
-      <div class="pp-kpi">
-        <div class="pp-kpi__label">已归档凭证</div>
-        <div class="pp-kpi__value">{{ n(sm.boundCount) }}</div>
-        <div class="pp-kpi__foot">已绑定到打卡记录</div>
-      </div>
+      <Card class="dub-kpi" :body-style="{ padding: '20px' }">
+        <div class="dub-kpi__label">文件总数</div>
+        <div class="dub-kpi__value">{{ n(sm.totalCount) }}</div>
+        <div class="dub-kpi__foot">{{ n(sm.photos) }} 张照片 · {{ n(sm.videos) }} 段视频</div>
+      </Card>
+      <Card class="dub-kpi" :body-style="{ padding: '20px' }">
+        <div class="dub-kpi__label">已占用空间</div>
+        <div class="dub-kpi__value">{{ sm.totalMB }}<span class="dub-kpi__unit">MB</span></div>
+        <div class="dub-kpi__foot">含未提交的临时文件</div>
+      </Card>
+      <Card class="dub-kpi" :body-style="{ padding: '20px' }" :class="{ 'dub-kpi--dark': sm.orphanCount > 0 }">
+        <div class="dub-kpi__label">待清理（上传未提交）</div>
+        <div class="dub-kpi__value">{{ n(sm.orphanCount) }}</div>
+        <div class="dub-kpi__foot">约 {{ sm.orphanMB }} MB 可以回收</div>
+      </Card>
+      <Card class="dub-kpi" :body-style="{ padding: '20px' }">
+        <div class="dub-kpi__label">已归档凭证</div>
+        <div class="dub-kpi__value">{{ n(sm.boundCount) }}</div>
+        <div class="dub-kpi__foot">已绑定到打卡记录</div>
+      </Card>
     </div>
 
-    <!-- 运维提示：七牛免费额度 / 本地磁盘都靠这个动作保命 -->
-    <div class="pp-card pp-card--mist pp-card--pad-sm">
+    <!-- 运维提示 -->
+    <Card class="dub-card--mist" :body-style="{ padding: '20px' }">
       <div class="pp-row">
-        <span class="pp-badge pp-badge--new">每日必做</span>
+        <Tag class="dub-tag--new">每日必做</Tag>
         <span class="pp-caption" style="flex: 1; min-width: 240px">
           先「导出当天附件」存档，再点「清理未提交的文件」，空间就能循环使用。
           七牛免费额度只有 10GB，1000 人 7 天不收着用一定超。
         </span>
       </div>
-    </div>
+    </Card>
 
     <!-- 筛选与操作 -->
-    <div class="pp-card pp-card--pad-sm">
+    <Card :body-style="{ padding: '20px' }">
       <div class="pp-filters">
-        <select v-model="q.status" class="pp-select pp-input--sm" style="width: auto" @change="go(1)">
-          <option value="1">已绑定（归档）</option>
-          <option value="0">待清理（上传未提交）</option>
-          <option value="all">全部文件</option>
-        </select>
-        <input v-model="q.date" class="pp-input pp-input--sm" type="date" @change="go(1)" />
+        <Select v-model:value="q.status" size="small" @change="go(1)">
+          <Select-Option value="1">已绑定（归档）</Select-Option>
+          <Select-Option value="0">待清理（上传未提交）</Select-Option>
+          <Select-Option value="all">全部文件</Select-Option>
+        </Select>
+        <DatePicker v-model:value="q.date" size="small" value-format="YYYY-MM-DD" @change="go(1)" />
         <template v-if="q.status === '0'">
-          <select v-model.number="q.minutes" class="pp-select pp-input--sm" style="width: auto" @change="go(1)">
-            <option :value="60">超过 1 小时未提交</option>
-            <option :value="120">超过 2 小时未提交</option>
-            <option :value="720">超过 12 小时未提交</option>
-            <option :value="1440">超过 1 天未提交</option>
-          </select>
+          <Select v-model:value="q.minutes" size="small" @change="go(1)">
+            <Select-Option :value="60">超过 1 小时未提交</Select-Option>
+            <Select-Option :value="120">超过 2 小时未提交</Select-Option>
+            <Select-Option :value="720">超过 12 小时未提交</Select-Option>
+            <Select-Option :value="1440">超过 1 天未提交</Select-Option>
+          </Select>
         </template>
 
         <div class="pp-spacer"></div>
 
-        <button class="pp-btn pp-btn--outline pp-btn--sm" type="button" :disabled="busy" @click="refresh">刷新</button>
+        <Button size="small" :disabled="busy" @click="refresh">刷新</Button>
       </div>
-    </div>
+    </Card>
 
     <!-- 导出与清理 -->
     <div class="pp-grid pp-grid--2">
-      <div class="pp-card">
+      <Card :body-style="{ padding: '20px' }">
         <h3 class="pp-h3">导出附件</h3>
         <p class="pp-lead" style="margin-top: 8px; margin-bottom: 16px">
           打包成 zip 下载存档。<b>建议一天一天导</b>——一次导 300 个文件就是几十 MB，
           手机上会很难受，服务器也容易被拉满。
         </p>
         <div class="pp-row">
-          <input v-model="zipDate" class="pp-input pp-input--sm" style="width: auto" type="date" />
-          <select v-model.number="zipMax" class="pp-select pp-input--sm" style="width: auto">
-            <option :value="100">最多 100 个</option>
-            <option :value="300">最多 300 个</option>
-            <option :value="800">最多 800 个</option>
-          </select>
-          <button class="pp-btn pp-btn--sm" type="button" :disabled="busy" @click="exportZip">
+          <DatePicker v-model:value="zipDate" size="small" value-format="YYYY-MM-DD" />
+          <Select v-model:value="zipMax" size="small">
+            <Select-Option :value="100">最多 100 个</Select-Option>
+            <Select-Option :value="300">最多 300 个</Select-Option>
+            <Select-Option :value="800">最多 800 个</Select-Option>
+          </Select>
+          <Button size="small" :disabled="busy" @click="exportZip">
             {{ busy ? '打包中…' : '打包下载' }}
-          </button>
-          <button class="pp-btn pp-btn--outline pp-btn--sm" type="button" :disabled="busy" @click="exportManifest">
-            导出清单 CSV
-          </button>
+          </Button>
+          <Button size="small" :disabled="busy" @click="exportManifest">导出清单 CSV</Button>
         </div>
-      </div>
+      </Card>
 
-      <div class="pp-card">
+      <Card :body-style="{ padding: '20px' }">
         <h3 class="pp-h3">清理未提交的文件</h3>
         <p class="pp-lead" style="margin-top: 8px; margin-bottom: 16px">
           参与者传了文件但没点提交的，会一直占着空间。清理只删「从未绑定到任何打卡记录」的文件，
           不影响已经归档的凭证。
         </p>
         <div class="pp-row">
-          <select v-model.number="cleanupHours" class="pp-select pp-input--sm" style="width: auto">
-            <option :value="6">超过 6 小时</option>
-            <option :value="24">超过 24 小时</option>
-            <option :value="72">超过 3 天</option>
-          </select>
-          <button class="pp-btn pp-btn--outline pp-btn--sm" type="button" :disabled="busy" @click="doCleanup(true)">先试算</button>
-          <button class="pp-btn pp-btn--dark pp-btn--sm" type="button" :disabled="busy" @click="doCleanup(false)">确认清理</button>
+          <Select v-model:value="cleanupHours" size="small">
+            <Select-Option :value="6">超过 6 小时</Select-Option>
+            <Select-Option :value="24">超过 24 小时</Select-Option>
+            <Select-Option :value="72">超过 3 天</Select-Option>
+          </Select>
+          <Button size="small" :disabled="busy" @click="doCleanup(true)">先试算</Button>
+          <Button type="primary" size="small" :disabled="busy" @click="doCleanup(false)">确认清理</Button>
         </div>
         <p v-if="cleanupResult" class="pp-caption" style="margin-top: 12px">{{ cleanupResult }}</p>
-      </div>
+      </Card>
     </div>
 
     <!-- 列表 -->
-    <div v-if="loading" class="pp-card">
+    <Card v-if="loading">
       <div v-for="i in 4" :key="i" class="pp-skel" style="height: 40px; margin-bottom: 8px"></div>
-    </div>
+    </Card>
 
-    <div v-else-if="!list.length" class="pp-card pp-empty">没有符合条件的文件</div>
+    <Card v-else-if="!list.length" class="pp-empty">没有符合条件的文件</Card>
 
     <template v-else>
       <div class="pp-row">
-        <span class="pp-badge pp-badge--blue">共 {{ n(total) }} 个</span>
+        <Tag class="dub-tag--blue">共 {{ n(total) }} 个</Tag>
         <span class="pp-caption">第 {{ page }} / {{ Math.max(1, pages) }} 页</span>
       </div>
 
@@ -128,9 +126,9 @@
           </div>
           <div class="pp-media__meta">
             <div class="pp-row" style="gap: 6px">
-              <span class="pp-badge" :class="m.status === 1 ? 'pp-badge--done' : 'pp-badge--warn'">
+              <Tag :class="m.status === 1 ? 'dub-tag--done' : 'dub-tag--warn'">
                 {{ m.status === 1 ? '已归档' : '待清理' }}
-              </span>
+              </Tag>
               <span>{{ m.sizeMB }} MB</span>
             </div>
             <div style="margin-top: 6px">
@@ -156,31 +154,25 @@
     </template>
 
     <!-- 确认清理 -->
-    <div v-if="confirmOpen" class="pp-mask" @click.self="confirmOpen = false">
-      <div class="pp-modal" style="max-width: 480px">
-        <div class="pp-modal__head">
-          <h3 class="pp-h3">确认清理孤儿文件？</h3>
-          <button class="pp-modal__close" type="button" @click="confirmOpen = false">×</button>
-        </div>
-        <p class="pp-lead">
-          将删除 {{ cleanupPreview.candidates }} 个「上传后从未提交」的文件，约 {{ cleanupPreview.sizeMB }} MB。
-          这些文件不挂在任何打卡记录上，删除后不影响已归档的凭证。
-        </p>
-        <p class="pp-caption" style="margin-top: 12px">操作会记入后台日志，删除不可撤销。</p>
-        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px">
-          <button class="pp-btn pp-btn--outline pp-btn--sm" type="button" @click="confirmOpen = false">取消</button>
-          <button class="pp-btn pp-btn--dark pp-btn--sm" type="button" :disabled="busy" @click="doCleanup(false, true)">
-            {{ busy ? '清理中…' : '确认删除' }}
-          </button>
-        </div>
+    <Modal v-model:open="confirmOpen" title="确认清理孤儿文件？" :footer="null">
+      <p class="pp-lead">
+        将删除 {{ cleanupPreview.candidates }} 个「上传后从未提交」的文件，约 {{ cleanupPreview.sizeMB }} MB。
+        这些文件不挂在任何打卡记录上，删除后不影响已归档的凭证。
+      </p>
+      <p class="pp-caption" style="margin-top: 12px">操作会记入后台日志，删除不可撤销。</p>
+      <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px">
+        <Button size="small" @click="confirmOpen = false">取消</Button>
+        <Button type="primary" size="small" :disabled="busy" @click="doCleanup(false, true)">
+          {{ busy ? '清理中…' : '确认删除' }}
+        </Button>
       </div>
-    </div>
+    </Modal>
   </div>
 </template>
 
 <script setup>
 import { reactive, ref, onMounted } from 'vue';
-import { Pagination } from 'ant-design-vue';
+import { Pagination, Card, Button, Input, Select, SelectOption, DatePicker, Tag, Modal } from 'ant-design-vue';
 import { adminApi, download } from '../../api.js';
 import { mdText } from '../../utils.js';
 import { toastOk, toastErr, toastWarn } from '../../toast.js';

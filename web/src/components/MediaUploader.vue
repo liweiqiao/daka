@@ -306,6 +306,6 @@ defineExpose({ hasUploading, failures });
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
   font-size: 24px; color: var(--color-heather);
-  background: #f2eef2;
+  background: #f5f5f5;
 }
 </style>

@@ -1,6 +1,6 @@
 <template>
   <ConfigProvider :theme="ppTheme" :locale="ppLocale">
-    <div class="pp pp-antd pp-shell">
+    <div class="pp-antd pp-shell">
     <!-- 侧栏 -->
     <aside class="pp-side">
       <div class="pp-brand">
@@ -11,19 +11,12 @@
         </div>
       </div>
 
-      <nav class="pp-nav">
-        <router-link
-          v-for="item in nav"
-          :key="item.to"
-          :to="item.to"
-          class="pp-nav__item"
-          active-class="is-active"
-        >
-          <span class="pp-nav__dot"></span>
-          <span>{{ item.label }}</span>
-          <span v-if="item.badge" class="pp-nav__badge">{{ item.badge }}</span>
-        </router-link>
-      </nav>
+      <Menu mode="inline" :selected-keys="[activeKey]" class="pp-admin-menu">
+        <Menu.Item v-for="item in nav" :key="item.to" @click="go(item.to)">
+          {{ item.label }}
+          <span v-if="item.badge" class="dub-tag--accent pp-admin-menu__badge">{{ item.badge }}</span>
+        </Menu.Item>
+      </Menu>
 
       <div class="pp-side__foot">
         <div v-if="meta.today">今天是 {{ meta.today }}</div>
@@ -43,9 +36,11 @@
         </div>
 
         <div class="pp-top__right">
-          <router-link to="/" target="_blank" class="pp-btn pp-btn--outline pp-btn--sm">看家长端</router-link>
-          <button class="pp-btn pp-btn--ghost pp-btn--sm" type="button" @click="changePwdOpen = true">改密码</button>
-          <button class="pp-btn pp-btn--dark pp-btn--sm" type="button" @click="logout">退出</button>
+          <Button type="default" size="small">
+            <router-link to="/" target="_blank">看家长端</router-link>
+          </Button>
+          <Button type="text" size="small" @click="changePwdOpen = true">改密码</Button>
+          <Button type="primary" size="small" @click="logout">退出</Button>
         </div>
       </header>
 
@@ -64,31 +59,30 @@
     </main>
 
     <!-- 改密码 -->
-    <div v-if="changePwdOpen" class="pp-mask" @click.self="changePwdOpen = false">
-      <div class="pp-modal" style="max-width: 440px">
-        <div class="pp-modal__head">
-          <h3 class="pp-h3">修改密码</h3>
-          <button class="pp-modal__close" type="button" @click="changePwdOpen = false">×</button>
+    <Modal
+      v-model:open="changePwdOpen"
+      title="修改密码"
+      :footer="null"
+      width="440px"
+    >
+      <div style="display: flex; flex-direction: column; gap: 16px">
+        <div class="pp-field">
+          <label class="pp-label" for="p-old">原密码</label>
+          <Input.Password id="p-old" v-model:value="pwd.oldPassword" autocomplete="current-password" />
         </div>
-        <div style="display: flex; flex-direction: column; gap: 16px">
-          <div class="pp-field">
-            <label class="pp-label" for="p-old">原密码</label>
-            <input id="p-old" v-model="pwd.oldPassword" class="pp-input" type="password" autocomplete="current-password" />
-          </div>
-          <div class="pp-field">
-            <label class="pp-label" for="p-new">新密码</label>
-            <input id="p-new" v-model="pwd.newPassword" class="pp-input" type="password" autocomplete="new-password" />
-            <span class="pp-caption">至少 8 位，且同时包含字母和数字</span>
-          </div>
-          <div style="display: flex; gap: 12px; justify-content: flex-end">
-            <button class="pp-btn pp-btn--outline pp-btn--sm" type="button" @click="changePwdOpen = false">取消</button>
-            <button class="pp-btn pp-btn--sm" type="button" :disabled="pwdBusy" @click="submitPwd">
-              {{ pwdBusy ? '提交中…' : '保存' }}
-            </button>
-          </div>
+        <div class="pp-field">
+          <label class="pp-label" for="p-new">新密码</label>
+          <Input.Password id="p-new" v-model:value="pwd.newPassword" autocomplete="new-password" />
+          <span class="pp-caption">至少 8 位，且同时包含字母和数字</span>
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: flex-end">
+          <Button type="default" size="small" @click="changePwdOpen = false">取消</Button>
+          <Button type="primary" size="small" :disabled="pwdBusy" @click="submitPwd">
+            {{ pwdBusy ? '提交中…' : '保存' }}
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
     </div>
   </ConfigProvider>
 </template>
@@ -96,8 +90,8 @@
 <script setup>
 import { computed, reactive, ref, onBeforeUnmount, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ConfigProvider } from 'ant-design-vue';
-// 这个 import 会带入 a-v 的 reset 与 Planpoint 覆盖层。
+import { ConfigProvider, Menu, Button, Input, Modal } from 'ant-design-vue';
+// 这个 import 会带入 a-v 的 reset 与 Dub 覆盖层。
 // 放在 AdminLayout 而不是 main.js，是为了让参与者端完全不下载 a-v（见 admin-ui.js 注释）
 import { ppTheme, ppLocale } from '../../admin-ui.js';
 import { adminApi, store } from '../../api.js';
@@ -121,6 +115,8 @@ const nav = computed(() => [
   { to: '/admin/settings', label: '活动设置' },
 ]);
 
+const activeKey = computed(() => route.path);
+
 const title = computed(() => route.meta.title || '总览');
 const subtitle = computed(() => {
   const parts = [];
@@ -128,6 +124,8 @@ const subtitle = computed(() => {
   if (meta.totalDays) parts.push(`活动周期 ${meta.startDate || ''} ~ ${meta.endDate || ''}`);
   return parts.join(' · ') || '数据实时统计';
 });
+
+function go(to) { router.push(to); }
 
 function logout() {
   store.aToken = '';
@@ -168,7 +166,7 @@ async function submitPwd() {
 
 /**
  * a-v 的下拉层（Select 面板、Tooltip、Modal、Message）都挂在 document.body 上，
- * 不在 .pp-antd 里，所以只给外壳加类名的话那些浮层会拿不到 Planpoint 覆盖。
+ * 不在 .pp-antd 里，所以只给外壳加类名的话那些浮层会拿不到 Dub 覆盖。
  * 解决办法是把类名加到 body 上，卸载时摘掉 —— 用户跳到家长端就不会串味。
  */
 function syncAntdScope(on) {
@@ -182,3 +180,16 @@ onMounted(() => {
 
 onBeforeUnmount(() => syncAntdScope(false));
 </script>
+
+<style scoped>
+/* 侧栏菜单贴合外壳宽度，去掉 a-v 默认的内边距与右侧分割线 */
+.pp-admin-menu { width: 100%; background: transparent; }
+.pp-admin-menu :deep(.ant-menu-item) { margin: 2px 0; }
+.pp-admin-menu__badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+</style>

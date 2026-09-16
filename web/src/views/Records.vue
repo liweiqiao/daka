@@ -5,9 +5,9 @@
         <div v-if="!isRegistered" class="o-card o-card--pad-lg" style="text-align: center">
           <h2 class="o-h2">还没有登记</h2>
           <p class="o-text-muted o-text-sm" style="margin-top: 12px">
-            登记一次就能看到自己每天做过什么、完成了多少。
+            填一次信息就能看到自己每天做过什么、完成了多少。
           </p>
-          <router-link to="/register" class="o-btn o-btn--primary o-btn--lg" style="margin-top: 24px">去登记</router-link>
+          <router-link to="/checkin" class="o-btn o-btn--primary o-btn--lg" style="margin-top: 24px">去填信息</router-link>
         </div>
 
         <template v-else>
@@ -216,7 +216,7 @@ onMounted(() => load(true));
   position: fixed;
   inset: 0;
   z-index: 80;
-  background: rgba(20, 0, 24, .94);
+  background: rgba(10, 10, 10, .96);
   display: flex;
   flex-direction: column;
   align-items: center;

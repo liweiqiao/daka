@@ -1,32 +1,30 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 20px">
-    <!-- 筛选：保持 Planpoint 原生控件，只有表格换成了 a-v -->
-    <div class="pp-card pp-card--pad-sm">
+    <!-- 筛选 -->
+    <Card :body-style="{ padding: '20px' }">
       <div class="pp-filters">
-        <input v-model="q.keyword" class="pp-input pp-input--sm" style="min-width: 190px" placeholder="姓名 / 手机号" @keyup.enter="reloadFromFirst" />
-        <input v-model="q.school" class="pp-input pp-input--sm" placeholder="学校（模糊）" @keyup.enter="reloadFromFirst" />
-        <input v-model="q.date" class="pp-input pp-input--sm" type="date" @change="reloadFromFirst" />
-        <select v-model="q.theme" class="pp-select pp-input--sm" @change="reloadFromFirst">
-          <option value="">全部主题</option>
-          <option v-for="t in THEMES" :key="t" :value="t">{{ t }}</option>
-        </select>
-        <button class="pp-tag" :class="{ 'is-on': q.offline === '1' }" type="button" @click="toggleOffline">
-          只看线下打卡点
-        </button>
+        <Input v-model:value="q.keyword" size="small" style="min-width: 190px" placeholder="姓名 / 手机号" @keyup.enter="reloadFromFirst" />
+        <Input v-model:value="q.school" size="small" placeholder="学校（模糊）" @keyup.enter="reloadFromFirst" />
+        <DatePicker v-model:value="q.date" size="small" value-format="YYYY-MM-DD" @change="onDateChange" />
+        <Select v-model:value="q.theme" size="small" @change="reloadFromFirst">
+          <Select-Option value="">全部主题</Select-Option>
+          <Select-Option v-for="t in THEMES" :key="t" :value="t">{{ t }}</Select-Option>
+        </Select>
+        <Tag checkable :checked="q.offline === '1'" @change="toggleOffline">只看线下打卡点</Tag>
 
         <div class="pp-spacer"></div>
 
-        <button class="pp-btn pp-btn--outline pp-btn--sm" type="button" @click="reset">重置</button>
-        <button class="pp-btn pp-btn--sm" type="button" :disabled="busy" @click="reloadFromFirst">查询</button>
+        <Button size="small" @click="reset">重置</Button>
+        <Button type="primary" size="small" :disabled="busy" @click="reloadFromFirst">查询</Button>
       </div>
-    </div>
+    </Card>
 
     <!-- 汇总条 -->
     <div class="pp-row">
-      <span class="pp-badge pp-badge--blue">共 {{ n(total) }} 条</span>
+      <Tag class="dub-tag--blue">共 {{ n(total) }} 条</Tag>
       <span class="pp-caption">第 {{ page }} / {{ Math.max(1, pages) }} 页</span>
       <div class="pp-spacer"></div>
-      <button class="pp-btn pp-btn--dark pp-btn--sm" type="button" :disabled="busy" @click="exportCsv">导出当前筛选结果</button>
+      <Button type="primary" size="small" :disabled="busy" @click="exportCsv">导出当前筛选结果</Button>
     </div>
 
     <!-- 表格 -->
@@ -47,8 +45,8 @@
         </template>
 
         <template v-else-if="column.key === 'theme'">
-          <span class="pp-badge" :style="themeTagStyle(record.theme)">{{ record.theme }}</span>
-          <span v-if="record.isOffline" class="pp-badge pp-badge--new" style="margin-left: 4px">线下</span>
+          <Tag :style="themeTagStyle(record.theme)">{{ record.theme }}</Tag>
+          <Tag v-if="record.isOffline" class="dub-tag--new" style="margin-left: 4px">线下</Tag>
         </template>
 
         <template v-else-if="column.key === 'name'">
@@ -68,29 +66,27 @@
         </template>
 
         <template v-else-if="column.key === 'action'">
-          <button class="pp-btn pp-btn--ghost pp-btn--sm" type="button" @click="openDetail(record)">看凭证</button>
-          <button class="pp-btn pp-btn--dark pp-btn--sm" type="button" @click="askDelete(record)">删除</button>
+          <Button type="link" size="small" @click="openDetail(record)">看凭证</Button>
+          <Button type="primary" size="small" @click="askDelete(record)">删除</Button>
         </template>
       </template>
     </Table>
 
     <!-- 凭证查看 -->
-    <div v-if="detail.open" class="pp-mask" @click.self="closeDetail">
-      <div class="pp-modal pp-modal--wide">
-        <div class="pp-modal__head">
-          <div>
-            <h3 class="pp-h3">{{ detail.data ? detail.data.checkin.name : '' }} · {{ detail.data ? detail.data.checkin.theme : '' }}</h3>
-            <span v-if="detail.data" class="pp-caption">
-              {{ mdText(detail.data.checkin.checkin_date) }} · {{ detail.data.checkin.task_name }} ·
-              {{ detail.data.checkin.school }} · {{ detail.data.checkin.phoneRaw }}
-            </span>
-          </div>
-          <button class="pp-modal__close" type="button" @click="closeDetail">×</button>
+    <Modal
+      v-model:open="detail.open"
+      width="880px"
+      :footer="null"
+      :title="detail.data ? `${detail.data.checkin.name} · ${detail.data.checkin.theme}` : ''"
+    >
+      <div v-if="detail.loading" class="pp-empty">加载中…</div>
+      <div v-else-if="!detail.data || !detail.data.media.length" class="pp-empty">这一条没有凭证文件</div>
+      <div v-else>
+        <div v-if="detail.data" class="pp-caption" style="margin-bottom: 12px">
+          {{ mdText(detail.data.checkin.checkin_date) }} · {{ detail.data.checkin.task_name }} ·
+          {{ detail.data.checkin.school }} · {{ detail.data.checkin.phoneRaw }}
         </div>
-
-        <div v-if="detail.loading" class="pp-empty">加载中…</div>
-        <div v-else-if="!detail.data || !detail.data.media.length" class="pp-empty">这一条没有凭证文件</div>
-        <div v-else class="pp-media-grid">
+        <div class="pp-media-grid">
           <div v-for="m in detail.data.media" :key="m.id" class="pp-media">
             <div class="pp-media__box">
               <video v-if="m.type === 'video'" :src="m.url" controls preload="metadata"></video>
@@ -105,36 +101,30 @@
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
 
     <!-- 删除确认 -->
-    <div v-if="del.open" class="pp-mask" @click.self="del.open = false">
-      <div class="pp-modal" style="max-width: 460px">
-        <div class="pp-modal__head">
-          <h3 class="pp-h3">删除这条打卡？</h3>
-          <button class="pp-modal__close" type="button" @click="del.open = false">×</button>
-        </div>
-        <p class="pp-lead">
-          {{ del.row && del.row.participant.name }} 在 {{ del.row && mdText(del.row.date) }} 的
-          「{{ del.row && del.row.theme }} · {{ del.row && del.row.taskName }}」将被删除，
-          删除后这位参与者可以重新提交这一项。
-        </p>
-        <p class="pp-caption" style="margin-top: 12px">操作会记入后台日志。</p>
-        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px">
-          <button class="pp-btn pp-btn--outline pp-btn--sm" type="button" @click="del.open = false">取消</button>
-          <button class="pp-btn pp-btn--dark pp-btn--sm" type="button" :disabled="del.busy" @click="doDelete">
-            {{ del.busy ? '删除中…' : '确认删除' }}
-          </button>
-        </div>
+    <Modal v-model:open="del.open" title="删除这条打卡？" :footer="null">
+      <p class="pp-lead">
+        {{ del.row && del.row.participant.name }} 在 {{ del.row && mdText(del.row.date) }} 的
+        「{{ del.row && del.row.theme }} · {{ del.row && del.row.taskName }}」将被删除，
+        删除后这位参与者可以重新提交这一项。
+      </p>
+      <p class="pp-caption" style="margin-top: 12px">操作会记入后台日志。</p>
+      <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px">
+        <Button size="small" @click="del.open = false">取消</Button>
+        <Button type="primary" size="small" :disabled="del.busy" @click="doDelete">
+          {{ del.busy ? '删除中…' : '确认删除' }}
+        </Button>
       </div>
-    </div>
+    </Modal>
   </div>
 </template>
 
 <script setup>
 import { computed, reactive, ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { Table } from 'ant-design-vue';
+import { Table, Card, Button, Input, Select, SelectOption, DatePicker, Tag, Modal } from 'ant-design-vue';
 import { adminApi, download } from '../../api.js';
 import { THEMES, THEME_COLORS, mdText, hhmm } from '../../utils.js';
 import { toastOk, toastErr } from '../../toast.js';
@@ -242,8 +232,13 @@ function reset() {
   reload();
 }
 
-function toggleOffline() {
-  q.offline = q.offline === '1' ? '' : '1';
+function onDateChange(_d, ds) {
+  q.date = ds || '';
+  reloadFromFirst();
+}
+
+function toggleOffline(c) {
+  q.offline = c ? '1' : '';
   reloadFromFirst();
 }
 
@@ -260,7 +255,6 @@ async function openDetail(row) {
     detail.loading = false;
   }
 }
-function closeDetail() { detail.open = false; detail.data = null; }
 
 function askDelete(row) {
   del.row = row;

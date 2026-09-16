@@ -41,19 +41,25 @@ export function hhmm(datetime) {
   return m ? `${m[1]}:${m[2]}` : '';
 }
 
-/** 主题色：与设计令牌里能用的色相一一对应，用于图表区分 */
+/**
+ * 主题色：严格取自 DESIGN.md 的 Dub 调色板——单色系 + 唯一电光蓝高亮。
+ * 七个主题各占一个 token 色相，全部落在 variables.css 的色板内，
+ * 不用任何 Dub 之外的色相（旧的暖黄/热粉/青色都已移除）。
+ *   专注=电光蓝(品牌) · 乐观=鲜绿 · 希望=橘 · 自信=薰衣草紫 ·
+ *   感恩=深蓝宝石 · 坚韧=石墨灰 · 活力=近黑墨
+ */
 export const THEME_COLORS = {
-  专注: '#0f68ea',
-  乐观: '#ffcb00',
-  希望: '#39b54a',
-  自信: '#df37a7',
-  感恩: '#ff8a3d',
-  坚韧: '#8b5cf6',
-  活力: '#12b5b0',
+  专注: '#2563eb',
+  乐观: '#16a34a',
+  希望: '#ea580c',
+  自信: '#7c3aed',
+  感恩: '#1e40af',
+  坚韧: '#404040',
+  活力: '#0a0a0a',
 };
 
 export function themeColor(theme) {
-  return THEME_COLORS[theme] || '#1d1d1f';
+  return THEME_COLORS[theme] || '#171717';
 }
 
 /** 参与者端的 7 个主题顺序（后端也是这个顺序，保持视觉一致） */

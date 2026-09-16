@@ -10,13 +10,24 @@
 
 const db = require('../db');
 const config = require('../config');
+const http = require('../http');
 
 const DEFAULTS = {
   activity_title: config.activity.title,
-  activity_subtitle: '7 天 · 7 个心理品质 · 每天一个任务',
+  // 首页主画面（最大的两行字）单独分开配：
+  // activity_title 是活动的正式全名，页脚、后台、导出都用它，
+  // 而主画面要的是那句口号，两者混用会让页脚跟着变成口号。
+  hero_eyebrow: '第四届清城少年志国庆打卡活动',
+  hero_title: '少年有志 · 清城有光',
+  activity_subtitle: '7 天 · 涵养 7 个心理品质',
   activity_intro: '国庆七天，每天一个主题任务。选一个你最想做的，做完上传照片就算打卡；'
     + '也可以一次挑好几个主题，集中上传。同一主题一天只能打一次卡。',
   activity_notice: '',
+  // 活动日期：原本写死在 .env 的 ACTIVITY_START / ACTIVITY_END，
+  // 开放到后台可配后，这里作为数据库覆盖键，保存即写回 config.activity，
+  // 让打卡窗口校验与日期区间（time.js / checkin.js）即时生效。
+  activity_start: config.activity.startDate,
+  activity_end: config.activity.endDate,
   checkin_open: '1',
   photo_max_mb: String(config.upload.photoMaxMB),
   video_max_mb: String(config.upload.videoMaxMB),
@@ -26,15 +37,19 @@ const DEFAULTS = {
   honor_all_themes: String(config.activity.hzAllThemes),
   honor_theme_star: String(config.activity.hzThemeStar),
   honor_daka_master: String(config.activity.hzDakaMaster),
-  board_public: '1',
+  gallery_public: '1',
   certificate_note: '登记的联系方式仅用于后期证书发放与活动通知，请确保填写准确。',
 };
 
 const LABELS = {
-  activity_title: '活动标题',
+  activity_title: '活动标题（页脚、后台、导出用）',
+  hero_eyebrow: '首页主画面 · 第一行小字',
+  hero_title: '首页主画面 · 主标题',
   activity_subtitle: '副标题',
   activity_intro: '活动说明',
   activity_notice: '临时公告（显示在打卡页顶部，留空则不显示）',
+  activity_start: '活动开始日期（YYYY-MM-DD，决定打卡窗口第一天）',
+  activity_end: '活动结束日期（YYYY-MM-DD，决定打卡窗口最后一天）',
   checkin_open: '是否开放打卡（1 开 / 0 关）',
   photo_max_mb: '单张照片大小上限（MB）',
   video_max_mb: '单段视频大小上限（MB）',
@@ -44,7 +59,7 @@ const LABELS = {
   honor_all_themes: '全能少年：需覆盖主题数',
   honor_theme_star: '主题之星：单主题次数',
   honor_daka_master: '打卡达人：累计次数',
-  board_public: '是否公开战报给参与者（1 开 / 0 关）',
+  gallery_public: '首页「清城少年立志瞬间」照片墙（1 开 / 0 关）',
   certificate_note: '证书说明文案',
 };
 
@@ -64,9 +79,20 @@ async function all(force) {
   }
   const map = { ...DEFAULTS };
   rows.forEach((r) => { map[r.k] = r.v; });
+  applyActivityDates(map);
   cache = map;
   cacheAt = now;
   return map;
+}
+
+/** 校验并把 activity_start/activity_end 写回 config.activity，使同步的窗口校验即时生效 */
+function applyActivityDates(map) {
+  const s = /^\d{4}-\d{2}-\d{2}$/.test(map.activity_start || '') ? map.activity_start : config.activity.startDate;
+  const e = /^\d{4}-\d{2}-\d{2}$/.test(map.activity_end || '') ? map.activity_end : config.activity.endDate;
+  if (s && e && s <= e) {
+    config.activity.startDate = s;
+    config.activity.endDate = e;
+  }
 }
 
 async function num(key) {
@@ -91,6 +117,17 @@ async function set(key, value) {
 }
 
 async function setMany(obj) {
+  // 活动日期整体校验：任一被修改时，取「新值优先、否则原默认」组合后校验
+  if ('activity_start' in obj || 'activity_end' in obj) {
+    const s = 'activity_start' in obj ? obj.activity_start : config.activity.startDate;
+    const e = 'activity_end' in obj ? obj.activity_end : config.activity.endDate;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(e))) {
+      throw http.bad('活动开始/结束日期必须是 YYYY-MM-DD 格式', 'BAD_DATE');
+    }
+    if (String(s) > String(e)) {
+      throw http.bad('活动开始日期不能晚于结束日期', 'BAD_DATE');
+    }
+  }
   for (const [k, v] of Object.entries(obj)) {
     if (!(k in DEFAULTS)) continue; // 只允许写白名单键，防止写脏数据
     await set(k, v);
@@ -109,12 +146,14 @@ async function publicActivity() {
   const today = now.today();
   return {
     title: m.activity_title,
+    heroEyebrow: m.hero_eyebrow,
+    heroTitle: m.hero_title,
     subtitle: m.activity_subtitle,
     intro: m.activity_intro,
     notice: m.activity_notice,
     certificateNote: m.certificate_note,
     checkinOpen: m.checkin_open === '1',
-    boardPublic: m.board_public === '1',
+    galleryPublic: m.gallery_public === '1',
     dates,
     today,
     weekday: now.weekdayOf(today),
@@ -137,4 +176,4 @@ async function publicActivity() {
   };
 }
 
-module.exports = { all, num, bool, set, setMany, invalidate, publicActivity, DEFAULTS, LABELS };
+module.exports = { all, num, bool, set, setMany, invalidate, publicActivity, DEFAULTS, LABELS, DATE_KEYS: ['activity_start', 'activity_end'] };

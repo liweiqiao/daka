@@ -6,7 +6,11 @@ import { logoutParticipant, loadHealth } from './appstate.js';
 
 import './styles/base.css';
 import './styles/outseta.css';
-import './styles/planpoint.css';
+// 后台皮肤（antd-planpoint.css）必须全局引入：
+// /admin 未登录会跳到 /admin/login，那是独立路由、不依赖 AdminLayout，
+// 不会去 import admin-ui.js，若只在 admin-ui.js 里引这份 CSS，登录页就会整页裸奔。
+// 这里只引 CSS 文件（不引 admin-ui.js），家长端 H5 不会下载 a-v 的 JS 库，仍保持懒加载。
+import './styles/antd-planpoint.css';
 
 const app = createApp(App);
 

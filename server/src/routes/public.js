@@ -19,6 +19,7 @@ const config = require('../config');
 const auth = require('../auth');
 const stats = require('../services/stats');
 const settings = require('../services/settings');
+const gallery = require('../services/gallery');
 const participantService = require('../services/participant');
 const checkinService = require('../services/checkin');
 const magic = require('../services/magic');
@@ -382,13 +383,19 @@ router.post('/checkin', auth.requireParticipant, rateLimit({ windowMs: 60000, ma
   http.ok(ctx, result);
 });
 
-// ------------------------------------------------------------------ 公开战报
+// -------------------------------------------------- 清城少年立志瞬间（照片墙）
 
-router.get('/board', async (ctx) => {
-  if (!(await settings.bool('board_public'))) {
-    throw http.forbidden('活动方暂未公开战报', 'BOARD_CLOSED');
+/**
+ * 首页「清城少年立志瞬间」。
+ * 公开接口，所以只回脱敏姓名 + 主题 + 照片直链，不给学校、手机号、留言。
+ * 后台可以一键关掉（gallery_public），关掉后前端整块不渲染。
+ */
+router.get('/gallery', async (ctx) => {
+  if (!(await settings.bool('gallery_public'))) {
+    throw http.forbidden('活动方暂未公开打卡照片', 'GALLERY_CLOSED');
   }
-  http.ok(ctx, await stats.publicBoard(20));
+  const origin = `${ctx.protocol}://${ctx.host}`;
+  http.ok(ctx, await gallery.recentPhotos(require('../sql').int(ctx.query.limit, 30, { min: 5, max: 60 }), { origin }));
 });
 
 /** 刷新媒体签名链接（私有空间 2 小时过期，页面放久了需要重取） */

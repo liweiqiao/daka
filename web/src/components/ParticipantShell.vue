@@ -15,7 +15,6 @@
         <div class="o-nav__links">
           <router-link to="/checkin" class="o-nav__link" active-class="is-active">今日打卡</router-link>
           <router-link to="/records" class="o-nav__link" active-class="is-active">我的记录</router-link>
-          <router-link v-if="!hideBoard" to="/board" class="o-nav__link" active-class="is-active">打卡战报</router-link>
         </div>
       </div>
     </nav>
@@ -36,8 +35,6 @@
 <script setup>
 import { computed } from 'vue';
 import { state } from '../appstate.js';
-
-defineProps({ hideBoard: { type: Boolean, default: false } });
 
 const activityTitle = computed(() => (state.activity && state.activity.title) || '清城少年志 · 国庆七天打卡');
 const simulated = computed(() => state.simulated || '');
