@@ -267,39 +267,33 @@ async function main() {
   // ---------------------------------------------------------- F. 荣誉名单
   console.log('\n[F] 荣誉达标名单');
 
-  const h = await api('/api/admin/honors?types=allThemes,dakaMaster,themeStar');
+  const h = await api('/api/admin/honors?types=allRound,themeCert');
 
-  const truthAllThemes = await one(
+  const truthAllRound = await one(
     `SELECT COUNT(*) AS n FROM (
        SELECT participant_id FROM daka_checkin
-        GROUP BY participant_id HAVING COUNT(DISTINCT theme) >= 7
-     ) t`
-  );
-  eq('全能少年人数', h.allThemes.length, truthAllThemes.n);
-
-  const truthMaster = await one(
-    `SELECT COUNT(*) AS n FROM (
-       SELECT participant_id FROM daka_checkin
-        GROUP BY participant_id HAVING COUNT(*) >= ?
+        GROUP BY participant_id
+        HAVING COUNT(DISTINCT theme) >= 7 AND COUNT(*) >= ?
      ) t`,
-    [config.activity.hzDakaMaster]
+    [config.activity.hzTotal]
   );
-  eq(`打卡达人人数（≥${config.activity.hzDakaMaster} 次）`, h.dakaMaster.length, truthMaster.n);
+  eq(`全能少年人数（7 主题且 ≥${config.activity.hzTotal} 次）`, h.allRound.length, truthAllRound.n);
 
-  const truthStars = await many(
+  const truthCerts = await many(
     `SELECT theme, COUNT(*) AS n FROM (
        SELECT theme, participant_id FROM daka_checkin
         GROUP BY theme, participant_id HAVING COUNT(*) >= ?
      ) t GROUP BY theme`,
-    [config.activity.hzThemeStar]
+    [config.activity.hzThemeCert]
   );
-  let starOk = 0;
-  truthStars.forEach((r) => {
-    const g = h.themeStar.find((x) => x.theme === r.theme);
-    if (g && g.list.length === Number(r.n)) starOk += 1;
+  let certOk = 0;
+  truthCerts.forEach((r) => {
+    const g = h.themeCert.find((x) => x.theme === r.theme);
+    if (g && g.list.length === Number(r.n)) certOk += 1;
   });
-  eq('主题之星各主题人数一致的主题数', starOk, truthStars.length);
-  eq('荣誉接口下发门槛', h.thresholds.dakaMaster, config.activity.hzDakaMaster);
+  eq('主题专项证书各主题人数一致的主题数', certOk, truthCerts.length);
+  eq('荣誉接口下发门槛（单主题任务数）', h.thresholds.themeCert, config.activity.hzThemeCert);
+  eq('荣誉接口下发门槛（累计次数）', h.thresholds.total, config.activity.hzTotal);
 
   // ---------------------------------------------------------- G. 重名
   console.log('\n[G] 重名检测');

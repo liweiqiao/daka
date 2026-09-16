@@ -141,9 +141,8 @@ const config = {
     startDate: str('ACTIVITY_START', '2026-10-01'),
     endDate: str('ACTIVITY_END', '2026-10-07'),
     title: str('ACTIVITY_TITLE', '清城少年志 · 国庆七天打卡'),
-    hzAllThemes: num('HONOR_ALL_THEMES', 1), // 全能少年：每个主题至少 1 次
-    hzThemeStar: num('HONOR_THEME_STAR', 3), // 主题之星：单主题 ≥3 次
-    hzDakaMaster: num('HONOR_DAKA_MASTER', 14), // 打卡达人：累计 ≥14 次
+    hzThemeCert: num('HONOR_THEME_CERT', 7), // 主题专项证书：单主题完成满 7 个任务
+    hzTotal: num('HONOR_TOTAL', 20), // 全能少年：7 主题均覆盖 且 累计 ≥20 次
   },
 
   // 服务端按北京时间判定"今天"，不信任客户端传的日期

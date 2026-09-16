@@ -30,11 +30,21 @@ export const state = reactive({
  * 结果每次刷新页面时 state.me 还是 null，页面直接判定"没登记"、
  * 连 loadMe() 都不去调 —— 表现就是家长第二天再打开链接，
  * 系统又让他重新登记一遍，直接违背"信息只填一次"。
+ *
+ * ★ 另一个 2026-09-16 实测踩到的坑：tokenStore.pToken 必须是响应式的
+ * （api.js 里给 token 存了 reactive 影子），否则这个 computed 没有任何依赖、
+ * 首次算完就被永久缓存 —— 刚登记完的家长在这一页里依旧被当成"没登记"。
  */
 export const hasToken = computed(() => !!tokenStore.pToken);
 
-/** 已登记且服务端认这个 token（token 有 + state.me 拉到了） */
-export const isRegistered = computed(() => !!tokenStore.pToken && !!state.me);
+/**
+ * 已登记且服务端认这个 token（token 有 + state.me 拉到了）。
+ *
+ * 两个条件都要**无条件**读一遍：写成 `!!tokenStore.pToken && !!state.me`
+ * 时没有 token 会短路，state.me 这个依赖根本没被收集，
+ * 等 state.me 真的拉到数据了也不会触发重算。
+ */
+export const isRegistered = computed(() => !!(tokenStore.pToken && state.me));
 
 /** 今天已完成的主题集合，打卡页用来置灰 */
 export const todayDoneSet = computed(() => {

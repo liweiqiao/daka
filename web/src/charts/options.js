@@ -479,15 +479,15 @@ export function funnelOption(funnel) {
 
 /**
  * 荣誉达标环形图。
- * 三个荣誉是并列类别，用蓝 / 深蓝 / 黄 三档区分 —— 黄落在
- * "主题之星"上，因为它是三类里唯一按「颗」计的（一人可多颗），
+ * 两类荣誉并列，用蓝 / 黄两档区分 —— 黄落在
+ * "主题专项证书"上，因为它是两类里唯一按「张」计的（一人可多张），
  * 最容易和人数混淆，值得一个视觉提示。
  */
 export function honorDonutOption(honors) {
   const list = honors?.honors || [];
   if (!has(list) || list.every((h) => n(h.count) === 0)) return { graphic: emptyGraphic };
 
-  const tones = { allThemes: PP.blue, dakaMaster: PP.navy, themeStar: PP.yellow };
+  const tones = { allRound: PP.blue, themeCert: PP.yellow };
   const total = list.reduce((s, h) => s + n(h.count), 0);
 
   return {

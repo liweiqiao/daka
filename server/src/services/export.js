@@ -124,19 +124,19 @@ async function participantsCsv({ keyword = '', limit = 200000 } = {}) {
 
   const header = ['参与者ID', '姓名', '学校', '联系方式', '登记时间', '累计打卡次数', '完成主题数',
     '打卡天数', '专注', '乐观', '希望', '自信', '感恩', '坚韧', '活力',
-    '全能少年(7主题)', '打卡达人(≥' + config.activity.hzDakaMaster + '次)', '主题之星'];
+    '主题专项证书', `全能少年(7主题且≥${config.activity.hzTotal}次)`];
 
   return rowsToCsv(header, rows, (r) => {
     const themeCount = [r.t0, r.t1, r.t2, r.t3, r.t4, r.t5, r.t6].map((x) => Number(x || 0));
-    const star = ['专注', '乐观', '希望', '自信', '感恩', '坚韧', '活力']
-      .filter((t, i) => themeCount[i] >= config.activity.hzThemeStar).join('、');
+    const certs = ['专注', '乐观', '希望', '自信', '感恩', '坚韧', '活力']
+      .filter((t, i) => themeCount[i] >= config.activity.hzThemeCert)
+      .map((t) => `${t}少年`).join('、');
     return [
       r.id, r.name, r.school, num(r.phone), r.created_at,
       Number(r.total), Number(r.themes), Number(r.days),
       ...themeCount,
-      Number(r.themes) >= 7 ? '是' : '',
-      Number(r.total) >= config.activity.hzDakaMaster ? '是' : '',
-      star,
+      certs,
+      Number(r.themes) >= 7 && Number(r.total) >= config.activity.hzTotal ? '是' : '',
     ];
   });
 }
@@ -167,9 +167,8 @@ async function honorsCsv() {
   const out = [];
   out.push(['荣誉', '主题', '姓名', '学校', '联系方式', '累计打卡次数', '完成主题数', '说明']);
 
-  h.allThemes.forEach((p) => out.push(['全能少年', '', p.name, p.school, num(p.phoneRaw), p.total, p.themes, '7 个主题每个至少完成 1 次']));
-  h.dakaMaster.forEach((p) => out.push(['打卡达人', '', p.name, p.school, num(p.phoneRaw), p.total, p.themes, `累计有效打卡 ≥ ${h.thresholds.dakaMaster} 次`]));
-  h.themeStar.forEach((g) => g.list.forEach((p) => out.push(['主题之星', g.theme, p.name, p.school, num(p.phoneRaw), p.total, p.themes, `${g.theme} 完成 ${p.themeCount} 次`])));
+  h.themeCert.forEach((g) => g.list.forEach((p) => out.push([g.cert, g.theme, p.name, p.school, num(p.phoneRaw), p.total, p.themes, `${g.theme} 完成 ${p.themeCount} 个任务`])));
+  h.allRound.forEach((p) => out.push(['全能少年', '', p.name, p.school, num(p.phoneRaw), p.total, p.themes, `7 个主题均有完成，且累计满 ${h.thresholds.total} 次`]));
 
   return csv(out);
 }

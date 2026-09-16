@@ -149,10 +149,17 @@ async function main() {
   ok('有进入打卡的按钮', await startBtn.count() > 0);
   await shot(page, '01-home');
 
-  // 说明页应该能看到 7 个主题名
+  // ★ 2026-09-16 实测反馈：首页只留「主画面 → 临时公告 → 立志瞬间照片墙」，
+  //   「七个主题板块（含线下打卡点）/ 打卡说明 / 底部深色收尾」整块删掉。
+  //   这里反过来守住 —— 删掉的板块被顺手加回来是这类改版最常见的回归。
+  //   七个主题的覆盖检查改到打卡页的任务卡上验（见第 3 节）。
   const bodyText = await page.locator('body').innerText();
-  const themeHits = ['专注', '乐观', '希望', '自信', '感恩', '坚韧', '活力'].filter((t) => bodyText.includes(t));
-  ok('活动说明里覆盖 7 个主题', themeHits.length === 7, { themeHits });
+  ok('★ 首页保留主画面与照片墙',
+    /清城少年志|少年有志/.test(bodyText) && /清城少年立志瞬间/.test(bodyText),
+    { tail: bodyText.slice(0, 120) });
+  const removedBlocks = ['SEVEN THEMES', '打卡说明', '线下打卡点'].filter((k) => bodyText.includes(k));
+  ok('★ 首页已精简：七主题板块 / 线下打卡点 / 打卡说明都不再出现',
+    removedBlocks.length === 0, { hits: removedBlocks });
 
   // ------------------------------------------------------------ 2. 登记
   console.log('\n[2] 登记页（/register）');
@@ -202,6 +209,10 @@ async function main() {
 
   const afterRegUrl = page.url();
   ok('登记成功并进入打卡页', afterRegUrl.includes('/checkin'), { url: afterRegUrl.replace(BASE, '') });
+  // ★ 光看 URL 不算数：URL 对了、页面还是那张登记表单，家长一样进不去。
+  //   必须真的渲染出任务卡才算"进到打卡页"。
+  const regTasks = await page.locator('.o-task').count();
+  ok('★ 登记后打卡页真的渲染出任务卡（不只看 URL）', regTasks >= 1, { regTasks });
   await shot(page, '03-after-register');
 
   // ★ 关键回归：登记后刷新页面必须还是登录态。
@@ -264,6 +275,52 @@ async function main() {
   ok('就地表单含三项输入框（姓名/学校/联系方式）', unregInputs >= 3, { unregInputs });
   await ctx3.close();
 
+  // ------------------------------------------------------------ 2d. 家长的真实路径
+  /**
+   * ★ 2026-09-16 实测翻车的那条路，全在这里：
+   *   打开首页 → 点「开始打卡」（SPA 跳转，不刷新）→ 在打卡页就地填三项 → 提交
+   * 提交后必须**自动**切进打卡视图并渲染出任务，不能停在登记表单里。
+   *
+   * 为什么原来的用例抓不到：2c 和 2 都是 `page.goto()` 直接进某个页面，
+   * 属于整页加载、模块状态全新；而家长是从首页点进来的一次前端路由跳转 ——
+   * 首页渲染时已经把 hasToken / isRegistered 算过一遍并缓存住了。
+   * 一旦这两个 computed 拿不到响应式依赖（读的是 localStorage 这种非响应式来源），
+   * 就会被永久缓存成"未登记"：提交成功、token 也写进去了，
+   * 页面却既不切视图也不去请求任务列表 —— 表现就是"登记了但进不去打卡页"。
+   */
+  console.log('\n[2d] 首页 →开始打卡→ 就地登记 → 必须自动进入打卡视图');
+  const ctx4 = await browser.newContext(mobileOpts);
+  watchPage(ctx4);
+  const p4 = await ctx4.newPage();
+  watchPage(p4);
+  await p4.goto(BASE + '/', { waitUntil: 'networkidle' });
+  await p4.waitForTimeout(900);
+  await p4.locator('.o-hero a[href="/checkin"]').first().click();
+  await p4.waitForURL('**/checkin', { timeout: 8000 }).catch(() => {});
+  await p4.waitForTimeout(1200);
+  ok('首页「开始打卡」按钮进入打卡页', p4.url().includes('/checkin'), { url: p4.url().replace(BASE, '') });
+  ok('未登记者在打卡页看到就地表单', await p4.locator('#f-name').count() > 0);
+
+  await p4.locator('#f-name').fill(`实测${CN[Math.floor(Math.random() * CN.length)]}${rnd(3)}`);
+  await p4.locator('#f-school').fill('实测测试学校 四年级2班');
+  await p4.locator('#f-phone').fill('196' + String(Math.floor(Math.random() * 100000000)).padStart(8, '0'));
+  await p4.locator('form button[type="submit"]').first().click();
+  await p4.waitForTimeout(3000);
+  const dupModal4 = p4.locator('.o-modal:has-text("发现有同名的孩子")');
+  if (await dupModal4.count()) {
+    await dupModal4.locator('button:has-text("确认无误")').first().click();
+    await p4.waitForTimeout(1500);
+  }
+  await shot(p4, '03d-home-inline-register');
+
+  const formGone = (await p4.locator('#f-name').count()) === 0;
+  const tasks4 = await p4.locator('.o-task').count();
+  ok('★ 登记成功后自动离开登记表单（不刷新、不手点）', formGone);
+  ok('★ 登记成功后任务卡立刻渲染出来', tasks4 >= 1, { tasks4 });
+  ok('★ 首页点进来的这条路不会卡在"登记完了还是进不去"',
+    formGone && tasks4 >= 1, { formGone, tasks4 });
+  await ctx4.close();
+
   // ------------------------------------------------------------ 3. 打卡页
   console.log('\n[3] 打卡页（/checkin）');
   await page.goto(BASE + '/checkin', { waitUntil: 'networkidle' });
@@ -293,10 +350,21 @@ async function main() {
   const fileInput = page.locator('input[type="file"]').first();
   if (await fileInput.count()) {
     await fileInput.setInputFiles(coverPath);
-    await page.waitForTimeout(2500);
+    // ★ 等上传真的结束，别用固定 sleep。
+    //   本机跑的时候 /api/upload/local 可能慢到 3 秒（目录清理钩子会拦住临时文件删除并重试），
+    //   固定等 2.5 秒会在"文件还在上传…"的状态下就去点提交，
+    //   前端正确地拒绝提交（提示等传完），却把用例判成"提交没发出" —— 假失败。
+    await page.locator('.o-thumb').first().waitFor({ timeout: 8000 }).catch(() => {});
+    await page.waitForFunction(
+      () => !/文件还在上传|上传中/.test(document.body.innerText),
+      null, { timeout: 20000 },
+    ).catch(() => {});
+    await page.waitForTimeout(400);
     await shot(page, '06-checkin-uploaded');
     const upText = await page.locator('body').innerText();
     ok('上传后界面有已上传反馈', /已上传|上传成功|张|1\s*\/|删除|预览/.test(upText) || (await page.locator('img').count()) > 0);
+    ok('★ 上传完成后不再卡在「文件还在上传…」', !/文件还在上传/.test(upText),
+      { tail: upText.slice(-160) });
   } else {
     ok('打卡页存在文件选择入口', false, '找不到 input[type=file]');
   }
@@ -341,7 +409,13 @@ async function main() {
   ok('记录页能打开且不是空白', recText.trim().length > 40);
   ok('记录页显示累计次数或进度', /累计|次数|项|主题/.test(recText));
   if (submitted) {
-    ok('记录页出现刚提交的内容', /2026-10-0\d/.test(recText), { tail: recText.slice(0, 200) });
+    // ★ 不要写死 2026-10-0x：活动窗口从 2026-09-16 起改成后台可配、
+    //   任务卡会整体平移，写死月份的断言在实测期/改期后必然假失败。
+    //   期望日期直接取当前活动窗口（演练时钟下就是被模拟的那一天）。
+    const actNow = JSON.parse(await (await fetch(BASE + '/api/activity')).text()).data;
+    const expectDate = actNow.today || (actNow.dates && actNow.dates[0]) || '';
+    ok('记录页出现刚提交的内容', !expectDate || recText.includes(expectDate),
+      { expectDate, tail: recText.slice(0, 200) });
   }
 
   // ------------------------------------------------------------ 5. 照片墙
@@ -406,7 +480,7 @@ async function main() {
   const adminPages = [
     ['/admin/checkins', '打卡明细', /主题|日期|明细/],
     ['/admin/participants', '参与者', /姓名|学校|累计/],
-    ['/admin/honors', '荣誉名单', /全能少年|打卡达人|主题之星/],
+    ['/admin/honors', '荣誉名单', /全能少年|主题专项证书|少年/],
     ['/admin/media', '附件与空间', /空间|附件|清理|MB/],
     ['/admin/tasks', '任务字典', /专注|乐观|希望/],
     ['/admin/settings', '活动设置', /保存|标题|上限/],
@@ -454,7 +528,11 @@ async function main() {
       const head = buf.slice(0, 3);
       ok('下载的 CSV 带 UTF-8 BOM', head[0] === 0xef && head[1] === 0xbb && head[2] === 0xbf,
         { head: head.toString('hex') });
-      ok('下载的 CSV 有实际内容（>1KB）', buf.length > 1024, { bytes: buf.length });
+      // 别用">1KB"卡：库里只有测试数据时，CSV 本来就小（900 字节左右是正常的），
+      // 那样会假失败。真正要验的是"不是空壳"—— 有表头、有数据行。
+      const csvLines = buf.toString('utf8').replace(/^\uFEFF/, '').trim().split(/\r?\n/).filter(Boolean);
+      ok('下载的 CSV 有表头和数据行（不是空壳）', csvLines.length >= 2,
+        { lines: csvLines.length, bytes: buf.length, header: (csvLines[0] || '').slice(0, 60) });
     }
   }
 
@@ -463,7 +541,12 @@ async function main() {
    * 活动方最终可能决定"不收视频"（省七牛存储，见交付说明第七节）。
    * 实现方式是后台把「每项最多视频数」设成 0 —— 这是个不用改代码的开关，
    * 但文档里只是"声称"前端会跟着收起来，从没在浏览器里验过。
-   * 这里补上：改了设置 → 打卡页不出现视频区、首页文案不再提"0 段视频"→ 改回去。
+   * 这里补上：改了设置 → 打卡页上传区不出现视频入口 → 改回去 → 入口要回来。
+   *
+   * 注意：2026-09-16 首页精简后，"照片必传/视频可选"那套文案已经不在首页了，
+   * 视频相关的表述只剩打卡页的上传区。所以断言必须打在**展开了的上传区**上 ——
+   * 打卡页默认没选中任何任务，上传区根本没渲染，
+   * 那种"页面上没有加视频按钮"是假通过。
    *
    * 用页面自己的 fetch 打接口（token 从 localStorage 取），不再多登一次录 ——
    * 登录接口有 10 次/10 分钟限流，能省一次是一次。
@@ -479,6 +562,15 @@ async function main() {
     return { status: r.status, text: await r.text() };
   }, { p: pathname, i: init });
 
+  // 打开任务卡的上传区（后面两次检查都要用；选中的项不提交，不留副作用）
+  async function openOneUploader(pg) {
+    const btn = pg.locator('.o-task button:has-text("选这一项")').first();
+    if (!(await btn.count())) return false;
+    await btn.click({ force: true }).catch(() => {});
+    await pg.waitForTimeout(600);
+    return (await pg.locator('.uploader').count()) > 0;
+  }
+
   const actBefore = JSON.parse((await (await fetch(BASE + '/api/activity')).text()));
   const vCountBefore = actBefore.data.limits.videoMaxCount;
 
@@ -491,22 +583,16 @@ async function main() {
     ok('★ 关掉视频后活动接口的上限变成 0', actOff.data.limits.videoMaxCount === 0,
       { got: actOff.data.limits.videoMaxCount });
 
-    await page.goto(BASE + '/', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1200);
-    const homeOff = await page.locator('body').innerText();
-    ok('★ 首页不再写「0 段视频」这种像坏了的文案',
-      !/0\s*段视频/.test(homeOff) && /不需要上传视频|不收视频/.test(homeOff),
-      { hit: (homeOff.match(/[^\n]{0,40}视频[^\n]{0,40}/) || [''])[0] });
-    ok('★ 首页三步说明也不再提「视频可传可不传」',
-      !/视频可传可不传/.test(homeOff));
-    await shot(page, '09b-home-no-video');
-
     await page.goto(BASE + '/checkin', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(1400);
+    const uploaderOpen = await openOneUploader(page);
     const ckOff = await page.locator('body').innerText();
     await shot(page, '09c-checkin-no-video');
-    ok('★ 打卡页不再出现视频上传区', !/上传视频|上传一段视频|视频（选填）/.test(ckOff),
-      { hit: (ckOff.match(/[^\n]{0,40}视频[^\n]{0,40}/) || [''])[0] });
+    ok('★ 关掉视频后上传区只剩照片，没有视频入口',
+      uploaderOpen && /加照片/.test(ckOff) && !/加视频|视频（选填）/.test(ckOff),
+      { uploaderOpen, hit: (ckOff.match(/[^\n]{0,30}视频[^\n]{0,30}/) || [''])[0] });
+    ok('★ 关掉视频后也没有「0 段视频」这种像系统坏了的文案',
+      !/0\s*段视频/.test(ckOff));
   } finally {
     // 无论上面成没成，都要把设置改回去 —— 验收脚本不能污染交付状态
     await adminFetch('/api/admin/settings', {
@@ -517,6 +603,15 @@ async function main() {
   ok('★ 视频上限已改回原值（验收不留副作用）',
     actRestored.data.limits.videoMaxCount === vCountBefore,
     { want: vCountBefore, got: actRestored.data.limits.videoMaxCount });
+
+  // 改回来之后再验一次：视频入口必须重新出现，否则"关掉就消失"可能只是前端坏了
+  await page.goto(BASE + '/checkin', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1400);
+  const uploaderBack = await openOneUploader(page);
+  const ckOn = await page.locator('body').innerText();
+  ok('★ 视频上限改回来后，上传区重新出现视频入口（开关是双向有效的）',
+    uploaderBack && /加视频/.test(ckOn),
+    { uploaderBack, hit: (ckOn.match(/[^\n]{0,30}视频[^\n]{0,30}/) || [''])[0] });
 
   // ------------------------------------------------------------ 7. 控制台与网络
   console.log('\n[7] 控制台与网络');

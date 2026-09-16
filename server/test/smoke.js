@@ -315,8 +315,8 @@ async function main() {
   ok('矩阵为 7 天 × 7 主题', dd.matrix.cells.length === 49, { cells: dd.matrix.cells.length });
   ok('学校排行是数组', Array.isArray(dd.schools));
 
-  const honors = await call('/api/admin/honors?types=allThemes,dakaMaster,themeStar', { token: at });
-  ok('荣誉名单返回三类', !!(honors.json.data.allThemes && honors.json.data.dakaMaster && honors.json.data.themeStar));
+  const honors = await call('/api/admin/honors?types=allRound,themeCert', { token: at });
+  ok('荣誉名单返回两类', !!(honors.json.data.allRound && honors.json.data.themeCert));
   ok('荣誉门槛已下发', !!honors.json.data.thresholds);
 
   const dups = await call('/api/admin/duplicates', { token: at });

@@ -158,7 +158,7 @@ router.get('/honor-summary', async (ctx) => http.ok(ctx, await stats.honorSummar
 router.get('/schools', async (ctx) => http.ok(ctx, { schools: await stats.schoolRank(sql.int(ctx.query.limit, 30, { min: 1, max: 200 })) }));
 
 router.get('/honors', async (ctx) => {
-  const types = String(ctx.query.types || 'allThemes,dakaMaster,themeStar')
+  const types = String(ctx.query.types || 'allRound,themeCert')
     .split(',').map((s) => s.trim()).filter(Boolean);
   http.ok(ctx, await stats.honors({ types, keyword: String(ctx.query.keyword || '').slice(0, 40) }));
 });
@@ -334,7 +334,10 @@ router.get('/participants', async (ctx) => {
       `SELECT p.id, p.name, p.school, p.phone, p.created_at,
               COUNT(c.id) AS total,
               COUNT(DISTINCT c.theme) AS themes,
-              COUNT(DISTINCT c.checkin_date) AS days
+              COUNT(DISTINCT c.checkin_date) AS days,
+              SUM(c.theme='专注') AS t0, SUM(c.theme='乐观') AS t1, SUM(c.theme='希望') AS t2,
+              SUM(c.theme='自信') AS t3, SUM(c.theme='感恩') AS t4, SUM(c.theme='坚韧') AS t5,
+              SUM(c.theme='活力') AS t6
          FROM daka_participant p
          LEFT JOIN daka_checkin c ON c.participant_id = p.id
         WHERE ${whereSql}
@@ -367,15 +370,24 @@ router.get('/participants', async (ctx) => {
       total: Number(r.total),
       themes: Number(r.themes),
       days: Number(r.days),
-      honors: buildHonorTags(Number(r.total), Number(r.themes)),
+      honors: buildHonorTags(Number(r.total), Number(r.themes), [
+        r.t0, r.t1, r.t2, r.t3, r.t4, r.t5, r.t6,
+      ].map((x) => Number(x || 0))),
     })),
   });
 });
 
-function buildHonorTags(total, themes) {
+/**
+ * 参与者列表的荣誉小标签，口径与 stats.honors() 完全一致：
+ *  - 主题专项证书：该主题完成任务满 hzThemeCert → 「专注少年」等
+ *  - 全能少年：7 主题均覆盖 且 累计满 hzTotal
+ */
+function buildHonorTags(total, themes, themeCount = []) {
   const tags = [];
-  if (themes >= 7) tags.push('全能少年');
-  if (total >= config.activity.hzDakaMaster) tags.push('打卡达人');
+  stats.THEMES.forEach((t, i) => {
+    if ((themeCount[i] || 0) >= config.activity.hzThemeCert) tags.push(`${t}少年`);
+  });
+  if (themes >= 7 && total >= config.activity.hzTotal) tags.push('全能少年');
   return tags;
 }
 

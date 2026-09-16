@@ -338,6 +338,20 @@ async function onRegistered() {
   await load();
 }
 
+/**
+ * 兜底：只要"已登记"成立、任务又还没拉回来，就补一次加载。
+ *
+ * 2026-09-16 实测翻车就翻在这条链路上：登记成功后 registered 事件被吃掉
+ * （组件先被卸载、Vue 的 emit 在卸载后是空操作），页面切成了打卡视图却没去拉任务，
+ * 家长看到的是"登记成功了，任务区空着"。
+ * 事件这类"别人记得通知我"的机制容易断，这里用状态本身兜一层：
+ * 只要 isRegistered 变真（无论是走事件、还是刷新页面、还是别处写了 token），
+ * 任务列表就一定会被拉起来。
+ */
+watch(isRegistered, (v) => {
+  if (v && !taskList.value.length && !loading.value) load();
+});
+
 // 从别处回来时刷新一下"今天做了什么"，避免显示出过期的状态
 watch(() => state.me && state.me.progress && state.me.progress.total, () => {
   taskList.value.forEach((t) => {

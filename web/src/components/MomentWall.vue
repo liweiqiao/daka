@@ -13,8 +13,8 @@
       </p>
 
       <!-- 骨架：首次加载不留白 -->
-      <div v-if="loading" class="wall" style="margin-top: 32px">
-        <div v-for="i in 5" :key="i" class="o-skel" style="aspect-ratio: 4 / 5"></div>
+      <div v-if="loading" class="carousel" style="margin-top: 32px">
+        <div class="o-skel" style="aspect-ratio: 4 / 5; max-height: 480px"></div>
       </div>
 
       <!-- 还没有照片（活动没开始、或刚开始还没人交）：说清楚，别让人以为墙坏了 -->
@@ -26,27 +26,41 @@
       </div>
 
       <template v-else>
-        <!-- 照片少时收拢列数，让卡片铺满整行，不留在空位 -->
-        <div class="wall" :style="{ '--wall-cols': wallCols }" style="margin-top: 32px">
-          <figure
-            v-for="p in shown"
-            :key="p.key"
-            class="wall__item"
-            @click="preview = p"
-          >
-            <div class="wall__frame">
-              <img :src="p.url" alt="" loading="lazy" />
-            </div>
-            <figcaption class="wall__cap">
-              <span class="wall__dot" :style="{ background: themeColor(p.theme) }"></span>
-              <span class="wall__theme">{{ p.theme }}</span>
-              <span class="wall__who">{{ p.name }}</span>
-            </figcaption>
-          </figure>
+        <!-- 单卡片轮播：手机上左右滑动翻看，桌面端用两侧箭头；每 6 秒自动换下一张 -->
+        <div
+          class="carousel"
+          style="margin-top: 32px"
+          @pointerdown="userGrab"
+          @wheel="userGrab"
+        >
+          <div ref="trackEl" class="carousel__track" @scroll.passive="onScroll">
+            <figure
+              v-for="p in pool"
+              :key="p.key"
+              class="carousel__item"
+              @click="preview = p"
+            >
+              <div class="carousel__frame">
+                <img :src="p.url" alt="" loading="lazy" />
+              </div>
+              <figcaption class="carousel__cap">
+                <span class="carousel__themecolor" :style="{ background: themeColor(p.theme) }"></span>
+                <span class="carousel__theme">{{ p.theme }}</span>
+                <span class="carousel__who">{{ p.name }}</span>
+              </figcaption>
+            </figure>
+          </div>
+
+          <!-- 桌面端左右箭头（触屏设备隐藏，靠滑动） -->
+          <button v-if="pool.length > 1" class="carousel__nav carousel__nav--prev" type="button" aria-label="上一张" @click.stop="go(index - 1)">‹</button>
+          <button v-if="pool.length > 1" class="carousel__nav carousel__nav--next" type="button" aria-label="下一张" @click.stop="go(index + 1)">›</button>
         </div>
 
-        <p v-if="pool.length > PER_PAGE" class="o-text-caption o-text-muted" style="text-align: center; margin-top: 18px">
-          每 {{ ROTATE_SEC }} 秒自动换一批 · 点开可以看大图
+        <p v-if="pool.length > 1" class="o-text-caption o-text-muted" style="text-align: center; margin-top: 14px">
+          {{ index + 1 }} / {{ pool.length }} · 左右滑动看更多 · 点开可以看大图
+        </p>
+        <p v-else class="o-text-caption o-text-muted" style="text-align: center; margin-top: 14px">
+          点开可以看大图
         </p>
       </template>
     </div>
@@ -67,49 +81,68 @@
 /**
  * MomentWall.vue —— 首页「清城少年立志瞬间」照片墙。
  *
- * 规则：
- *   - 数据来自 /api/gallery，后端已经做过去重（一个孩子一次只占一个位置）
+ * 交互（2026-09-16 由 5 卡网格改成单卡片轮播，手机上 5 列太挤）：
+ *   - 一次只展示一张卡片，横向 scroll-snap 轨道：手机上直接滑动翻页，
+ *     桌面端有左右箭头；每 6 秒自动切下一张。
+ *   - 用户一旦手动滑动/点击，自动轮播暂停 10 秒再续，避免跟人抢。
+ *   - 数据来自 /api/gallery，后端已做去重（一个孩子一次只占一个位置）
  *     和姓名脱敏，这里只负责展示。
- *   - 一次显示 5 张，每 6 秒往下滚一批，滚完一圈从头再来。
  *   - 后台把 gallery_public 关掉时接口回 403，整块直接不渲染。
  *   - 页面切到后台就停掉定时器；家长在微信里挂着不看的页面不该一直转。
  */
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { onMounted, onBeforeUnmount, ref } from 'vue';
 import Modal from './Modal.vue';
 import { api } from '../api.js';
 import { themeColor, mdText } from '../utils.js';
 import { toastErr } from '../toast.js';
 
-const PER_PAGE = 5;
 const ROTATE_SEC = 6;
-const ROTATE_MS = ROTATE_SEC * 1000;
+const USER_PAUSE_MS = 10000;   // 用户动过之后，自动轮播歇一会儿再续
 
 const loading = ref(true);
 const visible = ref(true);   // 后台关掉时置 false，整块不渲染
 const pool = ref([]);
 const total = ref(0);
-const cursor = ref(0);
 const preview = ref(null);
 
+const trackEl = ref(null);
+const index = ref(0);
+
 let timer = null;
+let lastUserAt = 0;      // 最近一次用户操作的时刻
+let programmaticAt = 0;  // 最近一次程序驱动滚动的时刻（区分自动翻页和手滑）
 
-/** 循环取窗口：池子不足 5 张就直接全显示，不重复 */
-const shown = computed(() => {
-  const p = pool.value;
-  if (p.length <= PER_PAGE) return p;
-  return Array.from({ length: PER_PAGE }, (_, i) => p[(cursor.value + i) % p.length]);
-});
+function userGrab() { lastUserAt = Date.now(); }
 
-/** 照片不足 5 张时收拢列数（1~4 张就 1~4 列），让这一行铺满、不留空位；>=5 张固定 5 列 */
-const wallCols = computed(() => Math.min(Math.max(pool.value.length, 1), PER_PAGE));
+/** 翻到第 i 张（自动取模循环）；user=true 表示人主动点的，自动轮播要让路 */
+function go(i, { user = true } = {}) {
+  const el = trackEl.value;
+  const n = pool.value.length;
+  if (!el || !n) return;
+  const target = ((i % n) + n) % n;
+  programmaticAt = Date.now();
+  el.scrollTo({ left: target * el.clientWidth, behavior: 'smooth' });
+  index.value = target;
+  if (user) lastUserAt = Date.now();
+}
+
+function onScroll() {
+  const el = trackEl.value;
+  if (!el || !el.clientWidth) return;
+  // 非程序驱动的滚动（= 用户在用手滑）：刷新用户操作时刻，让自动轮播先歇着
+  if (Date.now() - programmaticAt > 700) lastUserAt = Date.now();
+  const i = Math.round(el.scrollLeft / el.clientWidth);
+  if (i !== index.value) index.value = i;
+}
 
 function start() {
   stop();
-  if (pool.value.length <= PER_PAGE) return;
+  if (pool.value.length <= 1) return;
   timer = setInterval(() => {
     if (document.hidden) return;
-    cursor.value = (cursor.value + PER_PAGE) % pool.value.length;
-  }, ROTATE_MS);
+    if (Date.now() - lastUserAt < USER_PAUSE_MS) return;
+    go(index.value + 1, { user: false });
+  }, ROTATE_SEC * 1000);
 }
 
 function stop() {
@@ -135,43 +168,52 @@ onBeforeUnmount(stop);
 </script>
 
 <style scoped>
-.wall {
-  display: grid;
-  /* 列数由 --wall-cols 控制（照片少时收拢铺满整行）；窄屏媒体查询优先级更高，保持 3/2 列 */
-  grid-template-columns: repeat(var(--wall-cols, 5), 1fr);
-  gap: var(--spacing-16);
+.carousel {
+  position: relative;
+  /* 桌面端别让一张照片横跨整个宽容器：收成"照片卡"的样子居中 */
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
 }
-@media (max-width: 900px) { .wall { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 560px) { .wall { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
+@media (max-width: 640px) { .carousel { max-width: none; } }
 
-.wall__item { display: flex; flex-direction: column; gap: 8px; cursor: pointer; }
-.wall__frame {
+.carousel__track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  /* 项目之间不留缝（每张正好占满轨道宽，scrollLeft = i * clientWidth 才对得上） */
+  scrollbar-width: none;
+}
+.carousel__track::-webkit-scrollbar { display: none; }
+
+.carousel__item {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  min-width: 0;
+}
+.carousel__frame {
   width: 100%;
   aspect-ratio: 4 / 5;
-  /* 列数收拢后卡片会变宽，限一下高度防止 1~2 张时变成巨型竖图；照片 cover 铺满裁切 */
-  max-height: 460px;
+  max-height: 480px;
   overflow: hidden;
   background: var(--color-paper-mist);
   border: 1px solid var(--color-ash);
   border-radius: var(--radius-cards);
 }
-.wall__frame img {
+.carousel__frame img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-  /* 换一批时轻微淡入，别让图片"啪"地跳一下 */
-  animation: wallIn .45s ease both;
 }
-@keyframes wallIn {
-  from { opacity: 0; transform: scale(1.015); }
-  to { opacity: 1; transform: none; }
-}
-
-.wall__cap { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.wall__dot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
-.wall__theme { font-size: var(--text-body-sm); font-weight: 600; color: var(--color-charcoal); flex-shrink: 0; }
-.wall__who {
+.carousel__cap { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.carousel__themecolor { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
+.carousel__theme { font-size: var(--text-body-sm); font-weight: 600; color: var(--color-charcoal); flex-shrink: 0; }
+.carousel__who {
   font-size: var(--text-caption);
   color: var(--color-fog);
   margin-left: auto;
@@ -180,7 +222,30 @@ onBeforeUnmount(stop);
   white-space: nowrap;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .wall__frame img { animation: none; }
+/* 桌面端箭头：悬浮在卡片两侧；触屏设备（hover:none）隐藏，靠滑动 */
+.carousel__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--color-ash);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--color-charcoal);
+  font-size: 22px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
+  z-index: 2;
+}
+.carousel__nav--prev { left: -14px; }
+.carousel__nav--next { right: -14px; }
+.carousel__nav:active { transform: translateY(-50%) scale(0.96); }
+@media (hover: none) {
+  .carousel__nav { display: none; }
 }
 </style>

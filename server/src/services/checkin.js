@@ -328,10 +328,16 @@ async function progress(participantId) {
   const themesHit = Object.keys(themeMap).length;
 
   const honors = [];
-  if (themesHit >= 7) honors.push({ key: 'allThemes', name: '全能少年', desc: '7 个主题每个至少完成 1 次' });
-  if (total >= config.activity.hzDakaMaster) honors.push({ key: 'dakaMaster', name: '打卡达人', desc: `累计有效打卡 ≥ ${config.activity.hzDakaMaster} 次` });
-  const stars = Object.entries(themeMap).filter(([, n]) => n >= config.activity.hzThemeStar).map(([t]) => t);
-  if (stars.length) honors.push({ key: 'themeStar', name: `主题之星（${stars.join('、')}）`, desc: `单个主题完成 ≥ ${config.activity.hzThemeStar} 次` });
+  if (themesHit >= 7 && total >= config.activity.hzTotal) {
+    honors.push({ key: 'allRound', name: '全能少年', desc: `7 个主题均有完成，且累计满 ${config.activity.hzTotal} 次` });
+  }
+  const certs = Object.entries(themeMap).filter(([, n]) => n >= config.activity.hzThemeCert).map(([t]) => `${t}少年`);
+  if (certs.length) {
+    honors.push({
+      key: 'themeCert', name: certs.join('、'),
+      desc: `单个主题完成满 ${config.activity.hzThemeCert} 个任务`,
+    });
+  }
 
   return {
     total,
@@ -345,16 +351,23 @@ async function progress(participantId) {
 
 function buildNextHonor(total, themesHit, themeMap) {
   const gaps = [];
-  if (themesHit < 7) gaps.push({ name: '全能少年', need: `还差 ${7 - themesHit} 个主题`, remain: 7 - themesHit });
-  if (total < config.activity.hzDakaMaster) gaps.push({ name: '打卡达人', need: `还差 ${config.activity.hzDakaMaster - total} 次`, remain: config.activity.hzDakaMaster - total });
-  const starGaps = Object.entries(themeMap)
-    .filter(([, n]) => n > 0 && n < config.activity.hzThemeStar)
-    .map(([t, n]) => ({ theme: t, remain: config.activity.hzThemeStar - n }));
-  if (!starGaps.length) {
+  // 全能少年 = 两个条件都要补，取还差的更多那头作为提示
+  if (themesHit < 7 || total < config.activity.hzTotal) {
+    const needThemes = Math.max(0, 7 - themesHit);
+    const needTotal = Math.max(0, config.activity.hzTotal - total);
+    const need = needThemes && needTotal
+      ? `还差 ${needThemes} 个主题、${needTotal} 次`
+      : (needThemes ? `还差 ${needThemes} 个主题` : `还差 ${needTotal} 次`);
+    gaps.push({ name: '全能少年', need, remain: Math.max(needThemes, needTotal) });
+  }
+  const certGaps = Object.entries(themeMap)
+    .filter(([, n]) => n > 0 && n < config.activity.hzThemeCert)
+    .map(([t, n]) => ({ theme: t, remain: config.activity.hzThemeCert - n }));
+  if (!certGaps.length) {
     const untouched = ['专注', '乐观', '希望', '自信', '感恩', '坚韧', '活力'].filter((t) => !themeMap[t]);
-    if (untouched.length) gaps.push({ name: '主题之星', need: `${untouched[0]} 还没开始`, remain: config.activity.hzThemeStar });
+    if (untouched.length) gaps.push({ name: `${untouched[0]}少年`, need: `${untouched[0]} 还没开始`, remain: config.activity.hzThemeCert });
   } else {
-    gaps.push({ name: '主题之星', need: `${starGaps[0].theme} 还差 ${starGaps[0].remain} 次`, remain: starGaps[0].remain });
+    gaps.push({ name: `${certGaps[0].theme}少年`, need: `${certGaps[0].theme} 还差 ${certGaps[0].remain} 个任务`, remain: certGaps[0].remain });
   }
   gaps.sort((a, b) => a.remain - b.remain);
   return gaps[0] || null;

@@ -8,8 +8,30 @@
  *   3. 401 自动登出：token 过期时清掉本地态并跳登录，而不是让页面一直转圈
  */
 
+import { reactive } from 'vue';
+
 const P_KEY = 'daka.p.token';
 const A_KEY = 'daka.a.token';
+
+/**
+ * ★ token 同时存两处：localStorage（刷新/关页面不丢） + 一份响应式影子。
+ *
+ * 为什么必须有影子 —— 2026-09-16 实测踩到的坑：
+ * 原先 store 的 getter 直接读 localStorage，而 localStorage 不是响应式的，
+ * 于是 `computed(() => !!store.pToken)` 这个计算属性**一个依赖都没有**，
+ * Vue 把第一次算出来的结果缓存后就再也不会重算。
+ * 家长在打卡页就地填完三项 → token 已经写进 localStorage → 页面读到的还是
+ * false → 不请求 /api/me/tasks → 表单消失、任务为空，看起来就是"登记了却进不去打卡页"。
+ * isRegistered 更隐蔽：`!!token && !!state.me` 在没有 token 时短路，
+ * 连 state.me 这个依赖都没登记上，同样被永久缓存成 false。
+ *
+ * 所以凡是要参与响应式的读取，都必须走这份 reactive 影子；
+ * localStorage 只在模块初始化时读一次，之后由 setter 单向同步过去。
+ */
+const tokenState = reactive({
+  p: (typeof localStorage !== 'undefined' && localStorage.getItem(P_KEY)) || '',
+  a: (typeof localStorage !== 'undefined' && localStorage.getItem(A_KEY)) || '',
+});
 
 /**
  * 接口基地址。
@@ -20,10 +42,16 @@ const A_KEY = 'daka.a.token';
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 export const store = {
-  get pToken() { return localStorage.getItem(P_KEY) || ''; },
-  set pToken(v) { v ? localStorage.setItem(P_KEY, v) : localStorage.removeItem(P_KEY); },
-  get aToken() { return localStorage.getItem(A_KEY) || ''; },
-  set aToken(v) { v ? localStorage.setItem(A_KEY, v) : localStorage.removeItem(A_KEY); },
+  get pToken() { return tokenState.p; },
+  set pToken(v) {
+    tokenState.p = v || '';
+    if (v) localStorage.setItem(P_KEY, v); else localStorage.removeItem(P_KEY);
+  },
+  get aToken() { return tokenState.a; },
+  set aToken(v) {
+    tokenState.a = v || '';
+    if (v) localStorage.setItem(A_KEY, v); else localStorage.removeItem(A_KEY);
+  },
 };
 
 export class ApiError extends Error {

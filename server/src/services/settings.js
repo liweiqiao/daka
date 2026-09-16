@@ -35,9 +35,8 @@ const DEFAULTS = {
   video_max_sec: String(config.upload.videoMaxSec),
   photo_max_count: String(config.upload.photoMaxCount),
   video_max_count: String(config.upload.videoMaxCount),
-  honor_all_themes: String(config.activity.hzAllThemes),
-  honor_theme_star: String(config.activity.hzThemeStar),
-  honor_daka_master: String(config.activity.hzDakaMaster),
+  honor_theme_cert: String(config.activity.hzThemeCert),
+  honor_total: String(config.activity.hzTotal),
   gallery_public: '1',
   certificate_note: '登记的联系方式仅用于后期证书发放与活动通知，请确保填写准确。',
 };
@@ -57,9 +56,8 @@ const LABELS = {
   video_max_sec: '单段视频时长上限（秒）',
   photo_max_count: '每项最多照片数',
   video_max_count: '每项最多视频数',
-  honor_all_themes: '全能少年：需覆盖主题数',
-  honor_theme_star: '主题之星：单主题次数',
-  honor_daka_master: '打卡达人：累计次数',
+  honor_theme_cert: '主题专项证书：单主题需完成任务数',
+  honor_total: '全能少年：累计需完成任务次数',
   gallery_public: '首页「清城少年立志瞬间」照片墙（1 开 / 0 关）',
   certificate_note: '证书说明文案',
 };
@@ -102,9 +100,8 @@ function applyActivityDates(map) {
   }
   // 荣誉门槛：同样支持后台覆盖写回（>0 才认，防止把门槛改成 0 或负数）
   const posInt = (v, d) => { const x = Number(v); return Number.isInteger(x) && x > 0 ? x : d; };
-  config.activity.hzAllThemes = posInt(map.honor_all_themes, config.activity.hzAllThemes);
-  config.activity.hzThemeStar = posInt(map.honor_theme_star, config.activity.hzThemeStar);
-  config.activity.hzDakaMaster = posInt(map.honor_daka_master, config.activity.hzDakaMaster);
+  config.activity.hzThemeCert = posInt(map.honor_theme_cert, config.activity.hzThemeCert);
+  config.activity.hzTotal = posInt(map.honor_total, config.activity.hzTotal);
 }
 
 async function num(key) {
@@ -233,9 +230,8 @@ async function publicActivity() {
       videoMaxCount: Number(m.video_max_count),
     },
     honors: {
-      allThemes: Number(m.honor_all_themes) || 7,
-      themeStar: Number(m.honor_theme_star) || 3,
-      dakaMaster: Number(m.honor_daka_master) || 14,
+      themeCert: Number(m.honor_theme_cert) || 7,
+      total: Number(m.honor_total) || 20,
     },
     themes: require('./stats').THEMES,
   };

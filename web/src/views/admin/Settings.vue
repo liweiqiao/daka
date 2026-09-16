@@ -147,7 +147,7 @@ const GROUPS = [
   {
     title: '荣誉门槛',
     note: '改完立即影响荣誉名单与个人进度',
-    keys: ['honor_all_themes', 'honor_theme_star', 'honor_daka_master'],
+    keys: ['honor_theme_cert', 'honor_total'],
   },
 ];
 
@@ -167,7 +167,7 @@ const LONG_KEYS = ['activity_intro', 'activity_notice', 'certificate_note'];
 const BOOL_KEYS = ['checkin_open', 'gallery_public'];
 const DATE_KEYS = ['activity_start', 'activity_end'];
 const NUM_KEYS = ['photo_max_mb', 'photo_max_count', 'video_max_mb', 'video_max_sec', 'video_max_count',
-  'honor_all_themes', 'honor_theme_star', 'honor_daka_master'];
+  'honor_theme_cert', 'honor_total'];
 
 const isLong = (k) => LONG_KEYS.includes(k);
 const isBool = (k) => BOOL_KEYS.includes(k);

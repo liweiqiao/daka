@@ -271,22 +271,25 @@ async function schoolRank(limit = 30) {
 }
 
 /**
- * 荣誉达标名单。三种荣誉一次算完，避免三次全表扫描。
- * 全部基于明细现算 —— 改荣誉门槛只需要改配置，历史数据自动跟着变。
+ * 荣誉达标名单（2026 标准，8 条）。
+ *  - themeCert 主题专项证书：某主题完成任务数满 hzThemeCert（默认 7，即该主题 7 个任务全做完），
+ *    按主题各发一张专项证书（专注少年 / 乐观少年 / … / 活力少年）。
+ *  - allRound 全能少年：7 个主题均有任务完成，且累计次数满 hzTotal（默认 20，含 20）。
+ * 两个荣誉一次算完，避免两次全表扫描；全部基于明细现算 ——
+ * 改荣誉门槛只需要改配置，历史数据自动跟着变。
  */
-async function honors({ types = ['allThemes', 'dakaMaster', 'themeStar'], keyword = '', limit = 2000 } = {}) {
+async function honors({ types = ['allRound', 'themeCert'], keyword = '', limit = 2000 } = {}) {
   const want = new Set(types);
   const lim = sql.int(limit, 2000, { min: 1, max: 5000 });
   const result = { thresholds: {
-    allThemes: 7,
-    dakaMaster: config.activity.hzDakaMaster,
-    themeStar: config.activity.hzThemeStar,
-  }, allThemes: [], dakaMaster: [], themeStar: [] };
+    themeCert: config.activity.hzThemeCert,
+    total: config.activity.hzTotal,
+  }, allRound: [], themeCert: [] };
 
   const nameFilter = keyword ? ' AND (p.name LIKE ? OR p.school LIKE ?)' : '';
   const kw = keyword ? [`%${keyword}%`, `%${keyword}%`] : [];
 
-  if (want.has('dakaMaster')) {
+  if (want.has('allRound')) {
     const rows = await db.q(
       `SELECT p.id, p.name, p.school, p.phone,
               COUNT(c.id) AS total,
@@ -295,32 +298,15 @@ async function honors({ types = ['allThemes', 'dakaMaster', 'themeStar'], keywor
          JOIN daka_checkin c ON c.participant_id = p.id
         WHERE 1=1 ${nameFilter}
         GROUP BY p.id, p.name, p.school, p.phone
-       HAVING total >= ?
-        ORDER BY total DESC, themes DESC
-        LIMIT ${lim}`,
-      [...kw, config.activity.hzDakaMaster]
-    );
-    result.dakaMaster = rows.map(rowToPerson);
-  }
-
-  if (want.has('allThemes')) {
-    const rows = await db.q(
-      `SELECT p.id, p.name, p.school, p.phone,
-              COUNT(c.id) AS total,
-              COUNT(DISTINCT c.theme) AS themes
-         FROM daka_participant p
-         JOIN daka_checkin c ON c.participant_id = p.id
-        WHERE 1=1 ${nameFilter}
-        GROUP BY p.id, p.name, p.school, p.phone
-       HAVING themes >= 7
+       HAVING themes >= 7 AND total >= ?
         ORDER BY total DESC
         LIMIT ${lim}`,
-      [...kw]
+      [...kw, config.activity.hzTotal]
     );
-    result.allThemes = rows.map(rowToPerson);
+    result.allRound = rows.map(rowToPerson);
   }
 
-  if (want.has('themeStar')) {
+  if (want.has('themeCert')) {
     const rows = await db.q(
       `SELECT c.theme, p.id, p.name, p.school, p.phone, COUNT(*) AS n
          FROM daka_checkin c
@@ -329,14 +315,15 @@ async function honors({ types = ['allThemes', 'dakaMaster', 'themeStar'], keywor
         GROUP BY c.theme, p.id, p.name, p.school, p.phone
        HAVING n >= ?
         ORDER BY c.theme, n DESC`,
-      [...kw, config.activity.hzThemeStar]
+      [...kw, config.activity.hzThemeCert]
     );
     const byTheme = new Map();
     rows.forEach((r) => {
       if (!byTheme.has(r.theme)) byTheme.set(r.theme, []);
       byTheme.get(r.theme).push({ ...rowToPerson(r), themeCount: Number(r.n) });
     });
-    result.themeStar = THEMES.filter((t) => byTheme.has(t)).map((t) => ({ theme: t, list: byTheme.get(t).slice(0, lim) }));
+    result.themeCert = THEMES.filter((t) => byTheme.has(t))
+      .map((t) => ({ theme: t, cert: `${t}少年`, list: byTheme.get(t).slice(0, lim) }));
   }
 
   return result;
@@ -548,63 +535,56 @@ async function funnel() {
 // --------------------------------------------------------------- 荣誉汇总
 
 /**
- * 三类荣誉的达标人数汇总（只出数字，名单走 honors()）。
+ * 两类荣誉的达标人数汇总（只出数字，名单走 honors()）。
  *
- * 三个门槛与 honors() 完全一致，都读 config.activity.*，
+ * 门槛与 honors() 完全一致，都读 config.activity.*，
  * 改门槛只需改配置，这里和名单页自动跟着变。
  *
- * 「主题之星」数的是 (主题, 人) 配对而不是人：同一人可以在两个主题各拿一颗星，
+ * 「主题专项证书」数的是 (主题, 人) 配对而不是人：同一人可以在多个主题各拿一张专项证书，
  * 所以它的总数可以大于参与人数 —— 这是设计如此，不是算错。
  */
 async function honorSummary() {
-  const { hzDakaMaster, hzThemeStar } = config.activity;
-  const [reg, any, allThemes, master, star] = await Promise.all([
+  const { hzThemeCert, hzTotal } = config.activity;
+  const [reg, any, allRound, cert] = await Promise.all([
     db.one('SELECT COUNT(*) AS n FROM daka_participant'),
     db.one('SELECT COUNT(DISTINCT participant_id) AS n FROM daka_checkin'),
     db.one(
       `SELECT COUNT(*) AS n FROM (
           SELECT participant_id FROM daka_checkin
-           GROUP BY participant_id HAVING COUNT(DISTINCT theme) >= 7
-       ) t`
-    ),
-    db.one(
-      `SELECT COUNT(*) AS n FROM (
-          SELECT participant_id FROM daka_checkin
-           GROUP BY participant_id HAVING COUNT(*) >= ?
+           GROUP BY participant_id
+           HAVING COUNT(DISTINCT theme) >= 7 AND COUNT(*) >= ?
        ) t`,
-      [hzDakaMaster]
+      [hzTotal]
     ),
     db.one(
       `SELECT COUNT(*) AS n FROM (
           SELECT participant_id, theme FROM daka_checkin
            GROUP BY participant_id, theme HAVING COUNT(*) >= ?
        ) t`,
-      [hzThemeStar]
+      [hzThemeCert]
     ),
   ]);
 
   const registered = Number(reg.n);
   const checkedIn = Number(any.n);
   return {
-    thresholds: { allThemes: 7, dakaMaster: hzDakaMaster, themeStar: hzThemeStar },
+    thresholds: { themeCert: hzThemeCert, total: hzTotal },
     registered,
     checkedIn,
     honors: [
       {
-        key: 'allThemes', name: '全能少年', rule: '集齐 7 个主题',
-        count: Number(allThemes.n), unit: '人',
+        key: 'allRound', name: '全能少年',
+        rule: `7 个主题均有完成，且累计满 ${hzTotal} 次`,
+        count: Number(allRound.n), unit: '人',
       },
       {
-        key: 'dakaMaster', name: '打卡达人', rule: `累计满 ${hzDakaMaster} 次`,
-        count: Number(master.n), unit: '人',
-      },
-      {
-        key: 'themeStar', name: '主题之星', rule: `单个主题满 ${hzThemeStar} 次`,
-        count: Number(star.n), unit: '颗（同一人可多颗）',
+        key: 'themeCert', name: '主题专项证书',
+        rule: `单个主题完成满 ${hzThemeCert} 个任务`,
+        count: Number(cert.n), unit: '张（同一人可多张）',
       },
     ],
     // 一个都没达标的人数，活动方用来看"参与是否过于浅"
-    loners: Math.max(0, checkedIn - Number(master.n)),
+    loners: Math.max(0, checkedIn - Number(cert.n)),
   };
 }
 

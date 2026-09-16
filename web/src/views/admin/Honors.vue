@@ -22,21 +22,16 @@
     </Card>
 
     <!-- 规则说明 -->
-    <div class="pp-grid pp-grid--3">
-      <Card class="dub-kpi" :body-style="{ padding: '20px' }" :class="{ 'dub-kpi--brand': activeTab === 'allThemes' }">
+    <div class="pp-grid pp-grid--2">
+      <Card class="dub-kpi" :body-style="{ padding: '20px' }" :class="{ 'dub-kpi--brand': activeTab === 'allRound' }">
         <div class="dub-kpi__label">全能少年</div>
-        <div class="dub-kpi__value">{{ n(counts.allThemes) }}<span class="dub-kpi__unit">人</span></div>
-        <div class="dub-kpi__foot">7 个主题每个至少完成 1 次</div>
+        <div class="dub-kpi__value">{{ n(counts.allRound) }}<span class="dub-kpi__unit">人</span></div>
+        <div class="dub-kpi__foot">7 个主题均有完成，且累计 ≥ {{ thresholds.total }} 次</div>
       </Card>
-      <Card class="dub-kpi" :body-style="{ padding: '20px' }" :class="{ 'dub-kpi--brand': activeTab === 'dakaMaster' }">
-        <div class="dub-kpi__label">打卡达人</div>
-        <div class="dub-kpi__value">{{ n(counts.dakaMaster) }}<span class="dub-kpi__unit">人</span></div>
-        <div class="dub-kpi__foot">累计有效打卡 ≥ {{ thresholds.dakaMaster }} 次</div>
-      </Card>
-      <Card class="dub-kpi" :body-style="{ padding: '20px' }" :class="{ 'dub-kpi--brand': activeTab === 'themeStar' }">
-        <div class="dub-kpi__label">主题之星</div>
-        <div class="dub-kpi__value">{{ n(starTotal) }}<span class="dub-kpi__unit">人次</span></div>
-        <div class="dub-kpi__foot">单个主题完成 ≥ {{ thresholds.themeStar }} 次</div>
+      <Card class="dub-kpi" :body-style="{ padding: '20px' }" :class="{ 'dub-kpi--brand': activeTab === 'themeCert' }">
+        <div class="dub-kpi__label">主题专项证书</div>
+        <div class="dub-kpi__value">{{ n(certTotal) }}<span class="dub-kpi__unit">张</span></div>
+        <div class="dub-kpi__foot">单个主题完成 ≥ {{ thresholds.themeCert }} 个任务（同一人可多张）</div>
       </Card>
     </div>
 
@@ -45,10 +40,10 @@
     </Card>
 
     <!-- 全能少年 -->
-    <template v-else-if="activeTab === 'allThemes'">
+    <template v-else-if="activeTab === 'allRound'">
       <Table
         :columns="columns"
-        :data-source="data.allThemes"
+        :data-source="data.allRound"
         :pagination="pagination"
         :scroll="{ x: 900 }"
         row-key="id"
@@ -74,52 +69,22 @@
       </Table>
     </template>
 
-    <!-- 打卡达人 -->
-    <template v-else-if="activeTab === 'dakaMaster'">
-      <Table
-        :columns="columns"
-        :data-source="data.dakaMaster"
-        :pagination="pagination"
-        :scroll="{ x: 900 }"
-        row-key="id"
-        size="middle"
-      >
-        <template #bodyCell="{ column, record, index }">
-          <template v-if="column.key === 'no'">
-            <span class="pp-caption">{{ index + 1 }}</span>
-          </template>
-          <template v-else-if="column.key === 'name'">
-            <span style="font-weight: 600">{{ record.name }}</span>
-          </template>
-          <template v-else-if="column.key === 'school'">
-            <span class="cell-clip">{{ record.school }}</span>
-          </template>
-          <template v-else-if="column.key === 'phone'">
-            <span class="pp-mono">{{ record.phoneRaw }}</span>
-          </template>
-          <template v-else-if="column.key === 'themes'">
-            {{ record.themes }}/7
-          </template>
-        </template>
-      </Table>
-    </template>
-
-    <!-- 主题之星 -->
+    <!-- 主题专项证书 -->
     <template v-else>
-      <Card v-if="!data.themeStar.length" class="pp-empty">还没有人达成「主题之星」</Card>
+      <Card v-if="!data.themeCert.length" class="pp-empty">还没有人达成主题专项证书</Card>
       <div v-else class="pp-grid pp-grid--2" style="align-items: start">
-        <Card v-for="g in data.themeStar" :key="g.theme">
+        <Card v-for="g in data.themeCert" :key="g.theme">
           <div class="pp-section-head">
             <Tag :style="themeTagStyle(g.theme)">
-              {{ g.theme }}
+              {{ g.cert }}
             </Tag>
-            <span class="pp-caption">{{ g.list.length }} 人达 {{ thresholds.themeStar }} 次以上</span>
+            <span class="pp-caption">{{ g.list.length }} 人完成 {{ thresholds.themeCert }} 个任务以上</span>
           </div>
           <div class="star-list">
             <div v-for="p in g.list" :key="p.id" class="star">
               <span class="star__name">{{ p.name }}</span>
               <span class="star__school pp-caption cell-clip">{{ p.school }}</span>
-              <span class="star__num">{{ p.themeCount }} 次</span>
+              <span class="star__num">{{ p.themeCount }} 个任务</span>
             </div>
           </div>
         </Card>
@@ -136,23 +101,21 @@ import { THEME_COLORS } from '../../utils.js';
 import { toastOk, toastErr } from '../../toast.js';
 
 const tabs = [
-  { key: 'allThemes', label: '全能少年' },
-  { key: 'dakaMaster', label: '打卡达人' },
-  { key: 'themeStar', label: '主题之星' },
+  { key: 'allRound', label: '全能少年' },
+  { key: 'themeCert', label: '主题专项证书' },
 ];
 
-const activeTab = ref('allThemes');
+const activeTab = ref('allRound');
 const keyword = ref('');
 const loading = ref(true);
 const busy = ref(false);
-const data = ref({ thresholds: {}, allThemes: [], dakaMaster: [], themeStar: [] });
+const data = ref({ thresholds: {}, allRound: [], themeCert: [] });
 
 const thresholds = computed(() => data.value.thresholds || {});
 const counts = computed(() => ({
-  allThemes: (data.value.allThemes || []).length,
-  dakaMaster: (data.value.dakaMaster || []).length,
+  allRound: (data.value.allRound || []).length,
 }));
-const starTotal = computed(() => (data.value.themeStar || []).reduce((n, g) => n + g.list.length, 0));
+const certTotal = computed(() => (data.value.themeCert || []).reduce((n, g) => n + g.list.length, 0));
 
 /**
  * 荣誉名单是**一次性全取**的（后端按类型各给一份，上限 2000），
@@ -189,8 +152,8 @@ async function reload() {
   busy.value = true;
   loading.value = true;
   try {
-    // 三个类型一次全取：1000 人规模下这几次聚合很快，省得切 tab 再等
-    data.value = await adminApi.honors({ types: 'allThemes,dakaMaster,themeStar', keyword: keyword.value });
+    // 两个类型一次全取：1000 人规模下这几次聚合很快，省得切 tab 再等
+    data.value = await adminApi.honors({ types: 'allRound,themeCert', keyword: keyword.value });
   } catch (e) {
     toastErr(e.message);
   } finally {

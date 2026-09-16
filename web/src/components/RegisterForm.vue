@@ -87,7 +87,6 @@
 import { reactive, ref } from 'vue';
 import Modal from './Modal.vue';
 import { api, store } from '../api.js';
-import { loadMe, loadActivity } from '../appstate.js';
 import { toastOk, toastErr } from '../toast.js';
 
 const props = defineProps({
@@ -144,7 +143,7 @@ async function submit() {
       sameName.schools = data.sameName.schools || [];
       showSameName.value = true;
     } else {
-      await finish();
+      finish();
     }
   } catch (e) {
     toastErr(e.message);
@@ -154,10 +153,20 @@ async function submit() {
   }
 }
 
-/** 登记完成：先把活动信息与"我"的状态刷成最新的，再交给页面决定去哪 */
-async function finish() {
+/**
+ * 登记完成：只负责通知调用方，数据加载交给页面自己。
+ *
+ * ★ 为什么必须"先 emit、后刷新"，而且刷新干脆挪走（2026-09-16 实测踩到）：
+ *   原来这里写的是 `await Promise.all([loadActivity(true), loadMe(true)])` 再 emit。
+ *   loadMe 会把 state.me 写进去 —— 而"已登记"（= 有 token + state.me）一成立，
+ *   打卡页最外层的 v-if 会在下一个微任务把本组件整个卸载掉，
+ *   而 Vue 的 emit 在组件卸载后直接 return（instance.isUnmounted 时是空操作）。
+ *   于是 registered 事件被吃掉：打卡页再也不会去拉任务列表，
+ *   家长那边看到的就是"提示登记成功、页面却停在原地/任务区一片空白"。
+ *   这跟 token 不是响应式那个坑是两个独立问题，都会通向同一个症状。
+ */
+function finish() {
   showSameName.value = false;
-  await Promise.all([loadActivity(true), loadMe(true)]);
   emit('registered');
 }
 </script>
