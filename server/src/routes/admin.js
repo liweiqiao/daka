@@ -670,17 +670,25 @@ router.put('/tasks/:id', async (ctx) => {
      norm.value.isOffline ? 1 : 0, norm.value.offlinePoint, id]
   );
   await log(ctx, 'UPDATE_TASK', `task:${id}`,
-    `10月${Number(String(row.day_date).slice(8, 10))}日「${row.task_name}」已编辑为「${norm.value.name}」`);
+    `${cnDayLabel(row.day_date)}「${row.task_name}」已编辑为「${norm.value.name}」`);
   http.ok(ctx, { message: '已保存，参与者端立即生效' });
 });
 
-/** 恢复默认：把这一项还原成 tasks-data.js 里的原始内容（按当前 天+主题 反查） */
+/** '2026-10-03' → '10月3日'（月份跟日期走，不写死 10 月 —— 活动日期可后台改） */
+function cnDayLabel(d) {
+  const s = String(d);
+  return `${Number(s.slice(5, 7))}月${Number(s.slice(8, 10))}日`;
+}
+
+/** 恢复默认：把这一项还原成 tasks-data.js 里的原始内容（按 day_no 定位，不受日期平移影响） */
 router.post('/tasks/:id/reset', async (ctx) => {
   const id = sql.int(ctx.params.id, 0, { min: 1 });
   const row = await db.one('SELECT * FROM daka_task WHERE id = ?', [id]);
   if (!row) throw http.notFound('任务不存在');
 
-  const day = TASK_DEFAULTS.DAYS.find((d) => d.date === String(row.day_date));
+  // 按「第几天」定位默认字典（DAYS 数组顺序即 day_no 顺序），
+  // 不能按具体日期匹配 —— 活动日期在后台改过之后 day_date 已经平移
+  const day = TASK_DEFAULTS.DAYS[(Number(row.day_no) || 1) - 1];
   const def = day && day.tasks.find((t) => t.theme === row.theme);
   if (!def) throw http.notFound(`默认字典里找不到这一天「${row.theme}」主题的任务（主题可能被改过），请手动改回`);
 
@@ -690,7 +698,7 @@ router.post('/tasks/:id/reset', async (ctx) => {
       WHERE id = ?`,
     [def.name, def.desc, def.how, def.offline ? 1 : 0, def.offline ? (day.offline || '') : '', id]
   );
-  await log(ctx, 'RESET_TASK', `task:${id}`, `10月${Number(String(row.day_date).slice(8, 10))}日「${def.name}」已恢复默认内容`);
+  await log(ctx, 'RESET_TASK', `task:${id}`, `${cnDayLabel(row.day_date)}「${def.name}」已恢复默认内容`);
   http.ok(ctx, { message: '已恢复默认内容' });
 });
 
@@ -709,9 +717,13 @@ router.put('/settings', async (ctx) => {
   try {
     const body = ctx.request.body || {};
     const payload = body.values || body;
-    const values = await settings.setMany(payload);
-    await log(ctx, 'UPDATE_SETTINGS', 'config', `更新配置：${Object.keys(payload).join(', ')}`);
-    http.ok(ctx, { values, message: '设置已保存，立即生效' });
+    const { values, taskShiftDays } = await settings.setMany(payload);
+    let message = '设置已保存，立即生效';
+    if (taskShiftDays) {
+      message += `；每日任务卡已整体平移 ${taskShiftDays > 0 ? '+' : ''}${taskShiftDays} 天（打卡记录不受影响）`;
+    }
+    await log(ctx, 'UPDATE_SETTINGS', 'config', `更新配置：${Object.keys(payload).join(', ')}${taskShiftDays ? `；任务卡平移 ${taskShiftDays} 天` : ''}`);
+    http.ok(ctx, { values, message });
   } catch (e) {
     if (e && e.status) {
       ctx.status = e.status;

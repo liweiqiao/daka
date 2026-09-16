@@ -327,6 +327,16 @@ async function boot() {
     warnings.push('数据库连不上');
   }
 
+  // ★ 预热活动设置：把库里的活动日期/荣誉门槛写回 config.activity。
+  //   不预热的话，重启后第一笔请求如果没先碰 /api/activity，
+  //   窗口校验、后台统计拿到的还是 .env 里的旧日期。
+  try {
+    const s = await require('./services/settings').all(true);
+    console.log(`  活动窗口 ${s.activity_start} ~ ${s.activity_end}（${time.activityDates().length} 天，取自后台动态配置）`);
+  } catch (e) {
+    warnings.push('活动设置预读失败，先用 .env 默认值兜底：' + (e.code || e.message));
+  }
+
   if (!hasWeb) console.log('  ⚠ 未找到 web/dist，仅提供 API（前端请单独跑 vite dev）');
   if (config.storage.driver === 'local' && config.transcode.enabled) {
     const transcode = require('./services/transcode');

@@ -11,6 +11,7 @@
 const db = require('../db');
 const config = require('../config');
 const http = require('../http');
+const time = require('../time');
 
 const DEFAULTS = {
   activity_title: config.activity.title,
@@ -85,7 +86,13 @@ async function all(force) {
   return map;
 }
 
-/** 校验并把 activity_start/activity_end 写回 config.activity，使同步的窗口校验即时生效 */
+/**
+ * 把数据库里的活动日期 + 荣誉门槛写回 config.activity，让同步读的代码
+ * （checkin.js 窗口校验、stats.js 日序、export.js 门槛）即时拿到动态值。
+ *
+ * 只改库不写回的后果：后台改了也不生效，所有读 config.activity 的地方
+ * 仍在用 .env 的旧值 —— 这是"动态配置"最容易漏的一环。
+ */
 function applyActivityDates(map) {
   const s = /^\d{4}-\d{2}-\d{2}$/.test(map.activity_start || '') ? map.activity_start : config.activity.startDate;
   const e = /^\d{4}-\d{2}-\d{2}$/.test(map.activity_end || '') ? map.activity_end : config.activity.endDate;
@@ -93,6 +100,11 @@ function applyActivityDates(map) {
     config.activity.startDate = s;
     config.activity.endDate = e;
   }
+  // 荣誉门槛：同样支持后台覆盖写回（>0 才认，防止把门槛改成 0 或负数）
+  const posInt = (v, d) => { const x = Number(v); return Number.isInteger(x) && x > 0 ? x : d; };
+  config.activity.hzAllThemes = posInt(map.honor_all_themes, config.activity.hzAllThemes);
+  config.activity.hzThemeStar = posInt(map.honor_theme_star, config.activity.hzThemeStar);
+  config.activity.hzDakaMaster = posInt(map.honor_daka_master, config.activity.hzDakaMaster);
 }
 
 async function num(key) {
@@ -117,8 +129,13 @@ async function set(key, value) {
 }
 
 async function setMany(obj) {
-  // 活动日期整体校验：任一被修改时，取「新值优先、否则原默认」组合后校验
-  if ('activity_start' in obj || 'activity_end' in obj) {
+  const dateChange = 'activity_start' in obj || 'activity_end' in obj;
+  let shiftDays = 0;
+
+  // 活动日期整体校验：任一被修改时，取「新值优先、否则原生效值」组合后校验
+  if (dateChange) {
+    // 先强制读一次库，把当前生效日期同步进 config.activity，再算偏移量
+    await all(true);
     const s = 'activity_start' in obj ? obj.activity_start : config.activity.startDate;
     const e = 'activity_end' in obj ? obj.activity_end : config.activity.endDate;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(e))) {
@@ -127,13 +144,61 @@ async function setMany(obj) {
     if (String(s) > String(e)) {
       throw http.bad('活动开始日期不能晚于结束日期', 'BAD_DATE');
     }
+    // ★ 任务卡跟着活动日期走：以任务卡实际最早的 day_date 为基准整体平移，
+    //   保证改完后任务卡第一天对齐新的活动开始日。
+    //   不能拿 config.activity.startDate 做基准 —— 后台配置与任务卡可能脱节
+    //   （旧版本改日期不平移任务卡），按配置算会把偏移量算错。
+    //   即使新日期与已存配置相同，只要任务卡没对齐也会被拉回来。
+    const r = await db.one('SELECT MIN(day_date) AS minDay FROM daka_task');
+    shiftDays = r && r.minDay ? time.diffDays(r.minDay, String(s)) : 0;
+    if (Math.abs(shiftDays) > 3650) {
+      throw http.bad('活动日期偏移过大，请检查日期是否填对', 'BAD_DATE');
+    }
   }
+
   for (const [k, v] of Object.entries(obj)) {
     if (!(k in DEFAULTS)) continue; // 只允许写白名单键，防止写脏数据
+    if (dateChange && (k === 'activity_start' || k === 'activity_end')) continue; // 日期键走下面的事务
     await set(k, v);
   }
+
+  if (dateChange) {
+    const s = 'activity_start' in obj ? obj.activity_start : config.activity.startDate;
+    const e = 'activity_end' in obj ? obj.activity_end : config.activity.endDate;
+    // 事务保证：日期配置写库与任务卡平移要么都成功、要么都不动，
+    // 不会出现"日期改了但任务卡还在原地"的中间态
+    await db.tx(async (c) => {
+      for (const [k, v] of [['activity_start', s], ['activity_end', e]]) {
+        await c.exec(
+          `INSERT INTO daka_config (k, v, label) VALUES (?,?,?)
+           ON DUPLICATE KEY UPDATE v = VALUES(v)`,
+          [k, String(v), LABELS[k] || '']
+        );
+      }
+      if (shiftDays !== 0) {
+        // 唯一键 uk_day_theme 下不能一步整体平移：+1 时"已移走的行"会撞上
+        // "还没移走的行"（MySQL 逐行校验唯一约束）。两段式：先全部跳到
+        // 远端无人的日期区间，再落到目标位置，全程在同一事务里。
+        // 偏移量夹紧成整数后内联（MySQL 预处理语句里 INTERVAL ? 不可靠）。
+        const FAR = 100000; // 约 273 年，远超任何真实活动跨度
+        await c.exec(
+          `UPDATE daka_task SET day_date = DATE_ADD(day_date, INTERVAL ${FAR} DAY)`
+        );
+        const rest = Math.trunc(shiftDays) - FAR;
+        // MySQL 单表 UPDATE 从左到右求值：day_date 已是新值，weekday 正好
+        // 按平移后的日期重算 —— 别调换这两行的顺序。
+        await c.exec(
+          `UPDATE daka_task
+             SET day_date = DATE_ADD(day_date, INTERVAL ${rest} DAY),
+                 weekday = ELT(WEEKDAY(day_date) + 1, '周一','周二','周三','周四','周五','周六','周日')`
+        );
+      }
+    });
+  }
+
   cache = null;
-  return all(true);
+  const values = await all(true);
+  return { values, taskShiftDays: dateChange ? shiftDays : 0 };
 }
 
 function invalidate() { cache = null; }
