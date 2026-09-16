@@ -5,8 +5,13 @@ import vue from '@vitejs/plugin-vue';
  * 开发时用 vite 自带代理把 /api 和 /media 转到 Koa（:3000），
  * 这样浏览器里是同源请求，不会踩跨域和 Cookie 的坑。
  * 打包后 dist 交给 Koa 托管，同样是同源，配置零改动。
+ *
+ * 分离部署（GitHub Pages 等）通过环境变量注入，两种模式互不影响：
+ *   VITE_BASE_PATH=/daka/                            —— 站点挂到子路径（Pages 的仓库名）
+ *   VITE_API_BASE=http://120.79.240.81:3010          —— 接口打向后端（配合 web/src/api.js）
  */
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  base: process.env.VITE_BASE_PATH || '/',
   plugins: [vue()],
   server: {
     host: true,
@@ -38,4 +43,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

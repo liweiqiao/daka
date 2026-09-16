@@ -35,7 +35,9 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  // BASE_URL 由 vite.config 的 base 决定：同源部署是 '/'，
+  // GitHub Pages 等子路径部署（如 /daka/）时路由要跟着挂到子路径下
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
   scrollBehavior(to, from, saved) {
     if (saved) return saved;

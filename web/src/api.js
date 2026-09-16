@@ -11,6 +11,14 @@
 const P_KEY = 'daka.p.token';
 const A_KEY = 'daka.a.token';
 
+/**
+ * 接口基地址。
+ * 同源部署（dist 交给 Koa 托管）时留空 —— 所有 /api、/media 都是相对路径，天然同源；
+ * 前后端分离部署（前端放 GitHub Pages 等静态托管）时，构建期注入
+ * VITE_API_BASE（如 http://120.79.240.81:3010），所有请求改为打向后端。
+ */
+const API_BASE = import.meta.env.VITE_API_BASE || '';
+
 export const store = {
   get pToken() { return localStorage.getItem(P_KEY) || ''; },
   set pToken(v) { v ? localStorage.setItem(P_KEY, v) : localStorage.removeItem(P_KEY); },
@@ -61,7 +69,7 @@ export async function request(path, opts = {}) {
 
   let res;
   try {
-    res = await fetch(path + buildQuery(query), {
+    res = await fetch(API_BASE + path + buildQuery(query), {
       method,
       headers,
       signal: ctrl.signal,
